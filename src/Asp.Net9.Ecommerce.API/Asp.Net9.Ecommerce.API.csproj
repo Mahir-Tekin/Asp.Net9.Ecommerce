@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>7bd7451a-2374-4b2c-84a8-0df56cf086dc</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="14.0.0" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
+    <PackageReference Include="MediatR" Version="12.5.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Asp.Net9.Ecommerce.Application\Asp.Net9.Ecommerce.Application.csproj" />
+    <ProjectReference Include="..\Asp.Net9.Ecommerce.Domain\Asp.Net9.Ecommerce.Domain.csproj" />
+    <ProjectReference Include="..\Asp.Net9.Ecommerce.Infrastructure\Asp.Net9.Ecommerce.Infrastructure.csproj" />
+    <ProjectReference Include="..\Asp.Net9.Ecommerce.Shared\Asp.Net9.Ecommerce.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

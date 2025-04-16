@@ -1,0 +1,6 @@
+@Asp.Net9.Ecommerce.API_HostAddress = http://localhost:5120
+
+GET {{Asp.Net9.Ecommerce.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
