@@ -120,5 +120,18 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Identity.Services
             }
             return (user.FirstName, user.LastName, user.Email);
         }
+
+        public async Task<Result> AssignUserToRoleAsync(string userId, string role)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+                return Result.Failure("User not found");
+
+            var result = await _userManager.AddToRoleAsync(user, role);
+            if (!result.Succeeded)
+                return Result.Failure(result.Errors.Select(e => e.Description).First());
+
+            return Result.Success();
+        }
     }
 } 

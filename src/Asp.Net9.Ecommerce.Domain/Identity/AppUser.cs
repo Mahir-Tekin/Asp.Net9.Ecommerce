@@ -16,7 +16,7 @@ namespace Asp.Net9.Ecommerce.Domain.Identity
             ? $"{FirstName} {LastName}".Trim() 
             : null;
         
-        public bool IsActive { get; private set; }
+        public bool IsActive { get; private set; } = true;
 
         // Token management
         public string? RefreshToken { get; set; }

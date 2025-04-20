@@ -12,5 +12,6 @@ namespace Asp.Net9.Ecommerce.Application.Common.Interfaces
         Task<Result<AppUser>> FindByEmailAsync(string email);
         Task<Result> UpdateRefreshTokenAsync(string userId, string refreshToken, DateTime refreshTokenExpiryTime);
         Task<(string firstName, string lastName, string email)> GetUserDetailsAsync(string userId);
+        Task<Result> AssignUserToRoleAsync(string userId, string role);
     }
 } 

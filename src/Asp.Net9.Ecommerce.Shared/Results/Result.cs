@@ -3,8 +3,8 @@ namespace Asp.Net9.Ecommerce.Shared.Results
     public class Result
     {
         public bool IsSuccess { get; }
-        public string Error { get; }
         public bool IsFailure => !IsSuccess;
+        public string Error { get; }
 
         protected Result(bool isSuccess, string error)
         {
@@ -13,9 +13,11 @@ namespace Asp.Net9.Ecommerce.Shared.Results
         }
 
         public static Result Success() => new(true, string.Empty);
+
         public static Result Failure(string error) => new(false, error);
 
         public static Result<T> Success<T>(T value) => new(value, true, string.Empty);
+
         public static Result<T> Failure<T>(string error) => new(default, false, error);
 
         // Additional helper methods
@@ -45,7 +47,7 @@ namespace Asp.Net9.Ecommerce.Shared.Results
 
         public T Value => IsSuccess 
             ? _value 
-            : throw new InvalidOperationException($"Cannot access value of a failed result. Error: {Error}");
+            : throw new InvalidOperationException("Cannot access Value of failed result");
 
         protected internal Result(T value, bool isSuccess, string error) 
             : base(isSuccess, error)
