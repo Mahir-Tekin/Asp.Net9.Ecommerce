@@ -41,28 +41,39 @@ namespace Asp.Net9.Ecommerce.Application.Authentication.Commands.Register
             }
 
             // 3. Get user roles (should now include Customer role)
-            var roles = await _identityService.GetUserRolesAsync(result.Value);
+            var rolesResult = await _identityService.GetUserRolesAsync(result.Value);
+            if (rolesResult.IsFailure)
+            {
+                return Result.Failure<AuthResponse>(rolesResult.Error);
+            }
 
             // 4. Generate tokens
-            var token = _jwtService.GenerateToken(result.Value, roles);
+            var token = _jwtService.GenerateToken(result.Value, rolesResult.Value);
             var refreshToken = _jwtService.GenerateRefreshToken();
             var expiryTime = _jwtService.GetRefreshTokenExpiryTime();
 
             // 5. Store refresh token
-            await _identityService.UpdateRefreshTokenAsync(
+            var updateResult = await _identityService.UpdateRefreshTokenAsync(
                 result.Value,
                 refreshToken,
                 expiryTime);
 
+            if (updateResult.IsFailure)
+            {
+                return Result.Failure<AuthResponse>(updateResult.Error);
+            }
+
             // 6. Return full auth response
-            var response = AuthResponse.Success(
-                token,
-                refreshToken,
-                result.Value,
-                request.Email,
-                $"{request.FirstName} {request.LastName}",
-                roles.ToList(),
-                expiryTime);
+            var response = new AuthResponse
+            {
+                AccessToken = token,
+                RefreshToken = refreshToken,
+                UserId = result.Value,
+                Email = request.Email,
+                FullName = $"{request.FirstName} {request.LastName}",
+                Roles = rolesResult.Value.ToList(),
+                RefreshTokenExpiryTime = expiryTime
+            };
 
             return Result.Success(response);
         }

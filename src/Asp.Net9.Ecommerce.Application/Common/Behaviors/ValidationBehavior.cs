@@ -38,11 +38,11 @@ namespace Asp.Net9.Ecommerce.Application.Common.Behaviors
 
             if (failures.Count != 0)
             {
-                var errorMessages = failures
-                    .Select(x => $"{x.PropertyName}: {x.ErrorMessage}")
+                var validationErrors = failures
+                    .Select(x => new ValidationError(x.PropertyName, x.ErrorMessage))
                     .ToList();
 
-                var errorMessage = string.Join(", ", errorMessages);
+                var errorResponse = ErrorResponse.ValidationError(validationErrors);
                 
                 var responseType = typeof(TResponse);
 
@@ -63,14 +63,14 @@ namespace Asp.Net9.Ecommerce.Application.Common.Behaviors
                     if (failureMethod != null)
                     {
                         var genericMethod = failureMethod.MakeGenericMethod(resultType);
-                        return genericMethod.Invoke(null, new object[] { errorMessage }) as TResponse;
+                        return genericMethod.Invoke(null, new object[] { errorResponse }) as TResponse;
                     }
                 }
 
                 // Handle Result
                 if (responseType == typeof(Result))
                 {
-                    return Result.Failure(errorMessage) as TResponse;
+                    return Result.Failure(errorResponse) as TResponse;
                 }
 
                 // For non-Result responses, throw validation exception

@@ -1,7 +1,10 @@
+using Asp.Net9.Ecommerce.Application.Authentication.Commands.Login;
 using Asp.Net9.Ecommerce.Application.Authentication.Commands.Register;
 using Asp.Net9.Ecommerce.Application.Authentication.DTOs;
+using Asp.Net9.Ecommerce.Shared.Results;
 using AutoMapper;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Asp.Net9.Ecommerce.API.Controllers
@@ -23,16 +26,35 @@ namespace Asp.Net9.Ecommerce.API.Controllers
         }
 
         /// <summary>
-        /// Register a new user
+        /// Login with email and password
+        /// </summary>
+        /// <param name="request">Login credentials</param>
+        /// <returns>Authentication result with JWT token if successful</returns>
+        [HttpPost("login")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request)
+        {
+            var command = _mapper.Map<LoginCommand>(request);
+            var result = await _mediator.Send(command);
+
+            if (result.IsFailure)
+                return BadRequest(result.Error);
+
+            return Ok(result.Value);
+        }
+
+        /// <summary>
+        /// Register a new user account
         /// </summary>
         /// <param name="request">User registration details</param>
-        /// <returns>Authentication response with JWT tokens if successful</returns>
-        /// <response code="200">Returns the authentication response with tokens</response>
-        /// <response code="400">If the registration request is invalid or fails</response>
+        /// <returns>Authentication result with JWT token if successful</returns>
         [HttpPost("register")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<AuthResponse>> Register([FromBody] RegisterRequest request)
         {
             var command = _mapper.Map<RegisterCommand>(request);
             var result = await _mediator.Send(command);

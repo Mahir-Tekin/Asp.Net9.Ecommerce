@@ -27,42 +27,52 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Identity.Services
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null)
             {
-                return Result.Failure<(string userId, AppUser user)>("Invalid email or password");
+                return Result.Failure<(string userId, AppUser user)>(
+                    ErrorResponse.ValidationError(new List<ValidationError> 
+                    { 
+                        new ValidationError("Credentials", "Invalid email or password") 
+                    }));
             }
 
             var result = await _signInManager.CheckPasswordSignInAsync(user, password, true);
             if (!result.Succeeded)
             {
                 if (result.IsLockedOut)
-                    return Result.Failure<(string userId, AppUser user)>("Account is locked out");
+                    return Result.Failure<(string userId, AppUser user)>(
+                        ErrorResponse.General("Account is locked out", "ACCOUNT_LOCKED"));
                 
                 if (result.IsNotAllowed)
-                    return Result.Failure<(string userId, AppUser user)>("Login is not allowed");
+                    return Result.Failure<(string userId, AppUser user)>(
+                        ErrorResponse.General("Login is not allowed", "LOGIN_NOT_ALLOWED"));
                 
-                return Result.Failure<(string userId, AppUser user)>("Invalid email or password");
+                return Result.Failure<(string userId, AppUser user)>(
+                    ErrorResponse.ValidationError(new List<ValidationError> 
+                    { 
+                        new ValidationError("Credentials", "Invalid email or password") 
+                    }));
             }
 
             return Result.Success((user.Id.ToString(), user));
         }
 
-        public async Task<bool> IsLockedOutAsync(string userId)
+        public async Task<Result<bool>> IsLockedOutAsync(string userId)
         {
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
-                return false;
+                return Result.Failure<bool>(ErrorResponse.NotFound("User not found"));
             }
-            return await _userManager.IsLockedOutAsync(user);
+            return Result.Success(await _userManager.IsLockedOutAsync(user));
         }
 
-        public async Task<IList<string>> GetUserRolesAsync(string userId)
+        public async Task<Result<IList<string>>> GetUserRolesAsync(string userId)
         {
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
-                return Array.Empty<string>();
+                return Result.Failure<IList<string>>(ErrorResponse.NotFound("User not found"));
             }
-            return await _userManager.GetRolesAsync(user);
+            return Result.Success(await _userManager.GetRolesAsync(user));
         }
 
         public async Task<Result<string>> CreateUserAsync(string email, string password, string firstName, string lastName)
@@ -80,7 +90,12 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Identity.Services
 
             var createUserResult = await _userManager.CreateAsync(user, password);
             if (!createUserResult.Succeeded)
-                return Result.Failure<string>(createUserResult.Errors.Select(e => e.Description).First());
+            {
+                var errors = createUserResult.Errors
+                    .Select(e => new ValidationError(e.Code, e.Description))
+                    .ToList();
+                return Result.Failure<string>(ErrorResponse.ValidationError(errors));
+            }
 
             return Result.Success(user.Id.ToString());
         }
@@ -90,7 +105,7 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Identity.Services
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null)
             {
-                return Result.Failure<AppUser>("User not found");
+                return Result.Failure<AppUser>(ErrorResponse.NotFound("User not found"));
             }
             return Result.Success(user);
         }
@@ -99,37 +114,48 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Identity.Services
         {
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
-                return Result.Failure("User not found");
+                return Result.Failure(ErrorResponse.NotFound("User not found"));
 
             user.RefreshToken = refreshToken;
             user.RefreshTokenExpiryTime = refreshTokenExpiryTime;
             var result = await _userManager.UpdateAsync(user);
 
             if (!result.Succeeded)
-                return Result.Failure(result.Errors.Select(e => e.Description).First());
+            {
+                var errors = result.Errors
+                    .Select(e => new ValidationError(e.Code, e.Description))
+                    .ToList();
+                return Result.Failure(ErrorResponse.ValidationError(errors));
+            }
 
             return Result.Success();
         }
 
-        public async Task<(string firstName, string lastName, string email)> GetUserDetailsAsync(string userId)
+        public async Task<Result<(string firstName, string lastName, string email)>> GetUserDetailsAsync(string userId)
         {
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
-                return (string.Empty, string.Empty, string.Empty);
+                return Result.Failure<(string firstName, string lastName, string email)>(
+                    ErrorResponse.NotFound("User not found"));
             }
-            return (user.FirstName, user.LastName, user.Email);
+            return Result.Success((user.FirstName ?? string.Empty, user.LastName ?? string.Empty, user.Email));
         }
 
         public async Task<Result> AssignUserToRoleAsync(string userId, string role)
         {
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
-                return Result.Failure("User not found");
+                return Result.Failure(ErrorResponse.NotFound("User not found"));
 
             var result = await _userManager.AddToRoleAsync(user, role);
             if (!result.Succeeded)
-                return Result.Failure(result.Errors.Select(e => e.Description).First());
+            {
+                var errors = result.Errors
+                    .Select(e => new ValidationError(e.Code, e.Description))
+                    .ToList();
+                return Result.Failure(ErrorResponse.ValidationError(errors));
+            }
 
             return Result.Success();
         }

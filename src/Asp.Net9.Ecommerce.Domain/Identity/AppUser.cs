@@ -30,10 +30,16 @@ namespace Asp.Net9.Ecommerce.Domain.Identity
         {
             // Domain validation
             if (string.IsNullOrWhiteSpace(email))
-                return Result.Failure<AppUser>("Email cannot be empty");
+                return Result.Failure<AppUser>(ErrorResponse.ValidationError(new List<ValidationError> 
+                { 
+                    new ValidationError("Email", "Email cannot be empty") 
+                }));
 
             if (!IsValidEmail(email))
-                return Result.Failure<AppUser>("Invalid email format");
+                return Result.Failure<AppUser>(ErrorResponse.ValidationError(new List<ValidationError> 
+                { 
+                    new ValidationError("Email", "Invalid email format") 
+                }));
 
             var user = new AppUser
             {
@@ -48,15 +54,20 @@ namespace Asp.Net9.Ecommerce.Domain.Identity
         // Method to update profile information
         public Result UpdateProfile(string? firstName, string? lastName, string? phoneNumber)
         {
+            var errors = new List<ValidationError>();
+
             // Domain validation
             if (firstName?.Length > 50)
-                return Result.Failure("First name cannot exceed 50 characters");
+                errors.Add(new ValidationError("FirstName", "First name cannot exceed 50 characters"));
             
             if (lastName?.Length > 50)
-                return Result.Failure("Last name cannot exceed 50 characters");
+                errors.Add(new ValidationError("LastName", "Last name cannot exceed 50 characters"));
 
             if (phoneNumber != null && !IsValidPhoneNumber(phoneNumber))
-                return Result.Failure("Invalid phone number format");
+                errors.Add(new ValidationError("PhoneNumber", "Invalid phone number format"));
+
+            if (errors.Any())
+                return Result.Failure(ErrorResponse.ValidationError(errors));
 
             FirstName = firstName?.Trim();
             LastName = lastName?.Trim();
@@ -68,7 +79,7 @@ namespace Asp.Net9.Ecommerce.Domain.Identity
         public Result Deactivate()
         {
             if (!IsActive)
-                return Result.Failure("User is already deactivated");
+                return Result.Failure(ErrorResponse.General("User is already deactivated", "USER_ALREADY_DEACTIVATED"));
 
             IsActive = false;
             return Result.Success();
@@ -77,7 +88,7 @@ namespace Asp.Net9.Ecommerce.Domain.Identity
         public Result Activate()
         {
             if (IsActive)
-                return Result.Failure("User is already active");
+                return Result.Failure(ErrorResponse.General("User is already active", "USER_ALREADY_ACTIVE"));
 
             IsActive = true;
             return Result.Success();
