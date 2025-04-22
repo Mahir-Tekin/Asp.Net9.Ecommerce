@@ -20,29 +20,47 @@ namespace Asp.Net9.Ecommerce.Application.Authentication.Commands.Login
 
         public async Task<Result<AuthResponse>> Handle(LoginCommand request, CancellationToken cancellationToken)
         {
-            // Validate credentials
+            // 1. Find user and validate credentials
             var validationResult = await _identityService.ValidateCredentialsAsync(request.Email, request.Password);
             if (validationResult.IsFailure)
                 return Result.Failure<AuthResponse>(validationResult.Error);
 
             var (userId, user) = validationResult.Value;
 
-            // Get user roles
+            // 2. Check if user is locked out
+            var lockoutResult = await _identityService.IsLockedOutAsync(userId);
+            if (lockoutResult.IsFailure)
+                return Result.Failure<AuthResponse>(lockoutResult.Error);
+
+            if (lockoutResult.Value)
+                return Result.Failure<AuthResponse>(ErrorResponse.General(
+                    "Account is locked out. Please try again later.",
+                    "ACCOUNT_LOCKED"));
+
+            // 3. Get user roles
             var rolesResult = await _identityService.GetUserRolesAsync(userId);
             if (rolesResult.IsFailure)
                 return Result.Failure<AuthResponse>(rolesResult.Error);
 
-            // Generate tokens
+            // 4. Generate tokens
             var accessToken = _jwtService.GenerateToken(userId, rolesResult.Value);
             var refreshToken = _jwtService.GenerateRefreshToken();
-            var refreshTokenExpiry = _jwtService.GetRefreshTokenExpiryTime();
             
-            // Update refresh token
-            var updateResult = await _identityService.UpdateRefreshTokenAsync(userId, refreshToken, refreshTokenExpiry);
+            // Calculate expiry time based on RememberMe
+            var refreshTokenExpiry = request.RememberMe 
+                ? _jwtService.GetExtendedRefreshTokenExpiryTime()
+                : _jwtService.GetRefreshTokenExpiryTime();
+            
+            // 5. Store refresh token
+            var updateResult = await _identityService.UpdateRefreshTokenAsync(
+                userId, 
+                refreshToken, 
+                refreshTokenExpiry);
+
             if (updateResult.IsFailure)
                 return Result.Failure<AuthResponse>(updateResult.Error);
 
-            // Return successful response
+            // 6. Return successful response
             var response = new AuthResponse
             {
                 AccessToken = accessToken,

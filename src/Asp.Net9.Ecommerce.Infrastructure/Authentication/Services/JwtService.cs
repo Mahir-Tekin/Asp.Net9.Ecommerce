@@ -55,5 +55,10 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Authentication.Services
         {
             return DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationInDays);
         }
+
+        public DateTime GetExtendedRefreshTokenExpiryTime()
+        {
+            return DateTime.UtcNow.AddDays(_jwtSettings.ExtendedRefreshTokenExpirationInDays);
+        }
     }
 } 

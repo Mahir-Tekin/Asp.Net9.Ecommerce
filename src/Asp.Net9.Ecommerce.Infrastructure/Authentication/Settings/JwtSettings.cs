@@ -7,5 +7,6 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Authentication.Settings
         public string Audience { get; init; }
         public int ExpirationInMinutes { get; init; }
         public int RefreshTokenExpirationInDays { get; init; }
+        public int ExtendedRefreshTokenExpirationInDays { get; init; } = 30; // Default 30 days for "Remember Me"
     }
 } 
