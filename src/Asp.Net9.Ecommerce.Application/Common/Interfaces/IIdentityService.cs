@@ -31,9 +31,24 @@ namespace Asp.Net9.Ecommerce.Application.Common.Interfaces
         Task<Result<AppUser>> FindByEmailAsync(string email);
 
         /// <summary>
-        /// Updates the refresh token for a user
+        /// Adds a new refresh token for a user
         /// </summary>
-        Task<Result> UpdateRefreshTokenAsync(string userId, string refreshToken, DateTime refreshTokenExpiryTime);
+        Task<Result<RefreshToken>> AddRefreshTokenAsync(string userId, string token, DateTime expiryTime);
+
+        /// <summary>
+        /// Gets the active refresh token for a user
+        /// </summary>
+        Task<Result<RefreshToken>> GetActiveRefreshTokenAsync(string userId, string token);
+
+        /// <summary>
+        /// Revokes all active refresh tokens for a user
+        /// </summary>
+        Task<Result> RevokeAllRefreshTokensAsync(string userId, string reason = "User logged out");
+
+        /// <summary>
+        /// Replaces an existing refresh token with a new one
+        /// </summary>
+        Task<Result<RefreshToken>> ReplaceRefreshTokenAsync(string userId, string currentToken, string newToken, DateTime expiryTime);
 
         /// <summary>
         /// Gets basic user details

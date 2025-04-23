@@ -18,9 +18,9 @@ namespace Asp.Net9.Ecommerce.Domain.Identity
         
         public bool IsActive { get; private set; } = true;
 
-        // Token management
-        public string? RefreshToken { get; set; }
-        public DateTime? RefreshTokenExpiryTime { get; set; }
+        // Refresh tokens collection
+        private readonly List<RefreshToken> _refreshTokens = new();
+        public IReadOnlyCollection<RefreshToken> RefreshTokens => _refreshTokens.AsReadOnly();
 
         // Protected constructor for EF Core
         protected AppUser() { }
@@ -76,12 +76,53 @@ namespace Asp.Net9.Ecommerce.Domain.Identity
             return Result.Success();
         }
 
+        // Refresh token management
+        public void AddRefreshToken(string token, DateTime expiresOnUtc)
+        {
+            _refreshTokens.Add(RefreshToken.Create(token, Id, expiresOnUtc));
+        }
+
+        public RefreshToken? GetActiveRefreshToken()
+        {
+            return _refreshTokens.FirstOrDefault(r => r.IsActive);
+        }
+
+        public void RevokeAllRefreshTokens(string reason = "User logged out")
+        {
+            foreach (var token in _refreshTokens.Where(t => t.IsActive))
+            {
+                token.Revoke(reason: reason);
+            }
+        }
+
+        public Result<RefreshToken> ReplaceRefreshToken(string currentToken, string newToken, DateTime expiresOnUtc)
+        {
+            var existingToken = _refreshTokens.FirstOrDefault(t => t.Token == currentToken);
+            
+            if (existingToken == null)
+                return Result.Failure<RefreshToken>(ErrorResponse.NotFound("Refresh token not found"));
+
+            if (!existingToken.IsActive)
+                return Result.Failure<RefreshToken>(ErrorResponse.ValidationError(new List<ValidationError> 
+                { 
+                    new ValidationError("RefreshToken", "Token is not active") 
+                }));
+
+            var newRefreshToken = RefreshToken.Create(newToken, Id, expiresOnUtc);
+            _refreshTokens.Add(newRefreshToken);
+            
+            existingToken.Revoke(newToken, "Replaced by new token");
+            
+            return Result.Success(newRefreshToken);
+        }
+
         public Result Deactivate()
         {
             if (!IsActive)
                 return Result.Failure(ErrorResponse.General("User is already deactivated", "USER_ALREADY_DEACTIVATED"));
 
             IsActive = false;
+            RevokeAllRefreshTokens("User deactivated");
             return Result.Success();
         }
 

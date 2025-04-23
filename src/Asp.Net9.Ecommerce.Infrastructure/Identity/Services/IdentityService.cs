@@ -1,6 +1,7 @@
 using Asp.Net9.Ecommerce.Application.Common.Interfaces;
 using Asp.Net9.Ecommerce.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,13 +14,16 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Identity.Services
     {
         private readonly UserManager<AppUser> _userManager;
         private readonly SignInManager<AppUser> _signInManager;
+        private readonly AppIdentityDbContext _context;
 
         public IdentityService(
             UserManager<AppUser> userManager,
-            SignInManager<AppUser> signInManager)
+            SignInManager<AppUser> signInManager,
+            AppIdentityDbContext context)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _context = context;
         }
 
         public async Task<Result<(string userId, AppUser user)>> ValidateCredentialsAsync(string email, string password)
@@ -110,14 +114,13 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Identity.Services
             return Result.Success(user);
         }
 
-        public async Task<Result> UpdateRefreshTokenAsync(string userId, string refreshToken, DateTime refreshTokenExpiryTime)
+        public async Task<Result<RefreshToken>> AddRefreshTokenAsync(string userId, string token, DateTime expiryTime)
         {
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
-                return Result.Failure(ErrorResponse.NotFound("User not found"));
+                return Result.Failure<RefreshToken>(ErrorResponse.NotFound("User not found"));
 
-            user.RefreshToken = refreshToken;
-            user.RefreshTokenExpiryTime = refreshTokenExpiryTime;
+            user.AddRefreshToken(token, expiryTime);
             var result = await _userManager.UpdateAsync(user);
 
             if (!result.Succeeded)
@@ -125,10 +128,60 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Identity.Services
                 var errors = result.Errors
                     .Select(e => new ValidationError(e.Code, e.Description))
                     .ToList();
-                return Result.Failure(ErrorResponse.ValidationError(errors));
+                return Result.Failure<RefreshToken>(ErrorResponse.ValidationError(errors));
             }
 
+            await _context.SaveChangesAsync();
+            return Result.Success(user.GetActiveRefreshToken());
+        }
+
+        public async Task<Result<RefreshToken>> GetActiveRefreshTokenAsync(string userId, string token)
+        {
+            var user = await _userManager.Users
+                .Include(u => u.RefreshTokens)
+                .FirstOrDefaultAsync(u => u.Id == Guid.Parse(userId));
+
+            if (user == null)
+                return Result.Failure<RefreshToken>(ErrorResponse.NotFound("User not found"));
+
+            var refreshToken = user.RefreshTokens.FirstOrDefault(t => t.Token == token && t.IsActive);
+            
+            if (refreshToken == null)
+                return Result.Failure<RefreshToken>(ErrorResponse.NotFound("Active refresh token not found"));
+
+            return Result.Success(refreshToken);
+        }
+
+        public async Task<Result> RevokeAllRefreshTokensAsync(string userId, string reason = "User logged out")
+        {
+            var user = await _userManager.Users
+                .Include(u => u.RefreshTokens)
+                .FirstOrDefaultAsync(u => u.Id == Guid.Parse(userId));
+
+            if (user == null)
+                return Result.Failure(ErrorResponse.NotFound("User not found"));
+
+            user.RevokeAllRefreshTokens(reason);
+            await _context.SaveChangesAsync();
+            
             return Result.Success();
+        }
+
+        public async Task<Result<RefreshToken>> ReplaceRefreshTokenAsync(string userId, string currentToken, string newToken, DateTime expiryTime)
+        {
+            var user = await _userManager.Users
+                .Include(u => u.RefreshTokens)
+                .FirstOrDefaultAsync(u => u.Id == Guid.Parse(userId));
+
+            if (user == null)
+                return Result.Failure<RefreshToken>(ErrorResponse.NotFound("User not found"));
+
+            var result = user.ReplaceRefreshToken(currentToken, newToken, expiryTime);
+            if (result.IsFailure)
+                return Result.Failure<RefreshToken>(result.Error);
+
+            await _context.SaveChangesAsync();
+            return Result.Success(result.Value);
         }
 
         public async Task<Result<(string firstName, string lastName, string email)>> GetUserDetailsAsync(string userId)

@@ -52,13 +52,13 @@ namespace Asp.Net9.Ecommerce.Application.Authentication.Commands.Login
                 : _jwtService.GetRefreshTokenExpiryTime();
             
             // 5. Store refresh token
-            var updateResult = await _identityService.UpdateRefreshTokenAsync(
+            var refreshTokenResult = await _identityService.AddRefreshTokenAsync(
                 userId, 
                 refreshToken, 
                 refreshTokenExpiry);
 
-            if (updateResult.IsFailure)
-                return Result.Failure<AuthResponse>(updateResult.Error);
+            if (refreshTokenResult.IsFailure)
+                return Result.Failure<AuthResponse>(refreshTokenResult.Error);
 
             // 6. Return successful response
             var response = new AuthResponse

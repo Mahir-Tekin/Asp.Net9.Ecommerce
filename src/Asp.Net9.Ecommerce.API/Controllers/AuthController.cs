@@ -1,4 +1,5 @@
 using Asp.Net9.Ecommerce.Application.Authentication.Commands.Login;
+using Asp.Net9.Ecommerce.Application.Authentication.Commands.RefreshToken;
 using Asp.Net9.Ecommerce.Application.Authentication.Commands.Register;
 using Asp.Net9.Ecommerce.Application.Authentication.DTOs;
 using Asp.Net9.Ecommerce.Shared.Results;
@@ -58,6 +59,25 @@ namespace Asp.Net9.Ecommerce.API.Controllers
         {
             var command = _mapper.Map<RegisterCommand>(request);
             var result = await _mediator.Send(command);
+
+            if (result.IsFailure)
+                return BadRequest(result.Error);
+
+            return Ok(result.Value);
+        }
+
+        /// <summary>
+        /// Refresh an expired access token using a refresh token
+        /// </summary>
+        /// <param name="request">The current access token and refresh token</param>
+        /// <returns>New access token and refresh token if successful</returns>
+        [HttpPost("refresh")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<AuthResponse>> RefreshToken([FromBody] RefreshTokenCommand request)
+        {
+            var result = await _mediator.Send(request);
 
             if (result.IsFailure)
                 return BadRequest(result.Error);

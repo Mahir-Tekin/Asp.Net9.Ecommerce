@@ -16,6 +16,23 @@ namespace Asp.Net9.Ecommerce.Domain.Common
             // Protected constructor to enforce creation through factory methods
         }
 
+        // Methods for audit trail
+        public void SetCreated()
+        {
+            CreatedAt = DateTime.UtcNow;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        public void SetUpdated()
+        {
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        public void SetDeleted()
+        {
+            DeletedAt = DateTime.UtcNow;
+        }
+
         public override bool Equals(object obj)
         {
             if (obj is not BaseEntity other)

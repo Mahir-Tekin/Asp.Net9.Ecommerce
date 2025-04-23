@@ -4,8 +4,10 @@ using Asp.Net9.Ecommerce.Infrastructure.Authentication.Services;
 using Asp.Net9.Ecommerce.Infrastructure.Authentication.Settings;
 using Asp.Net9.Ecommerce.Infrastructure.Identity;
 using Asp.Net9.Ecommerce.Infrastructure.Identity.Services;
+using Asp.Net9.Ecommerce.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -19,6 +21,9 @@ namespace Asp.Net9.Ecommerce.Infrastructure
             this IServiceCollection services,
             IConfiguration configuration)
         {
+            // Add Application DbContext
+            services.AddApplicationDbContext(configuration);
+            
             // Add Identity Services (including DbContext)
             services.AddIdentityServices(configuration);
             
@@ -52,6 +57,18 @@ namespace Asp.Net9.Ecommerce.Infrastructure
                         Encoding.UTF8.GetBytes(jwtSettings?.SecretKey ?? throw new InvalidOperationException("JWT SecretKey is not configured")))
                 };
             });
+
+            return services;
+        }
+
+        private static IServiceCollection AddApplicationDbContext(
+            this IServiceCollection services,
+            IConfiguration configuration)
+        {
+            services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlServer(
+                    configuration.GetConnectionString("DefaultConnection"),
+                    b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
 
             return services;
         }
