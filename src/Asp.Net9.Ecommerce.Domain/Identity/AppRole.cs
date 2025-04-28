@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using System.Globalization;
 
 namespace Asp.Net9.Ecommerce.Domain.Identity
 {
@@ -23,7 +24,7 @@ namespace Asp.Net9.Ecommerce.Domain.Identity
                 Name = name,
                 Description = description,
                 CreatedAt = createdAt ?? DateTime.UtcNow,
-                NormalizedName = name.ToUpper()
+                NormalizedName = name.ToUpperInvariant()
             };
         }
 

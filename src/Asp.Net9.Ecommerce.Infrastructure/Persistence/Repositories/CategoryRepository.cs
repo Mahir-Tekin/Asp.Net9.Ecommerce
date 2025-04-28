@@ -16,31 +16,31 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
         public async Task<Category> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
             return await _context.Categories
-                .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(c => c.Id == id && c.DeletedAt == null, cancellationToken);
         }
 
         public async Task<Category> GetBySlugAsync(string slug, CancellationToken cancellationToken = default)
         {
             return await _context.Categories
-                .FirstOrDefaultAsync(c => c.Slug == slug && !c.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(c => c.Slug == slug && c.DeletedAt == null, cancellationToken);
         }
 
         public async Task<bool> ExistsBySlugAsync(string slug, CancellationToken cancellationToken = default)
         {
             return await _context.Categories
-                .AnyAsync(c => c.Slug == slug && !c.IsDeleted, cancellationToken);
+                .AnyAsync(c => c.Slug == slug && c.DeletedAt == null, cancellationToken);
         }
 
         public async Task<bool> ExistsByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
             return await _context.Categories
-                .AnyAsync(c => c.Id == id && !c.IsDeleted, cancellationToken);
+                .AnyAsync(c => c.Id == id && c.DeletedAt == null, cancellationToken);
         }
 
         public async Task<IReadOnlyList<Category>> GetAllAsync(CancellationToken cancellationToken = default)
         {
             return await _context.Categories
-                .Where(c => !c.IsDeleted)
+                .Where(c => c.DeletedAt == null)
                 .ToListAsync(cancellationToken);
         }
 
@@ -48,7 +48,7 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
         {
             return await _context.Categories
                 .Include(c => c.ParentCategory)
-                .Where(c => !c.IsDeleted && c.ParentCategoryId == null) // Get root categories
+                .Where(c => c.DeletedAt == null && c.ParentCategoryId == null) // Get root categories
                 .ToListAsync(cancellationToken);
         }
 
