@@ -9,7 +9,7 @@ namespace Asp.Net9.Ecommerce.Domain.Common
         public DateTime? UpdatedAt { get; protected set; }
         public DateTime? DeletedAt { get; protected set; } 
         public bool IsDeleted => DeletedAt.HasValue;
-        public int Version { get; protected set; }
+
 
         protected BaseEntity()
         {
@@ -50,7 +50,7 @@ namespace Asp.Net9.Ecommerce.Domain.Common
             return Id == other.Id;
         }
 
-        public static bool operator ==(BaseEntity a, BaseEntity b)
+        public static bool operator ==(BaseEntity? a, BaseEntity? b)
         {
             if (a is null && b is null)
                 return true;
@@ -61,7 +61,7 @@ namespace Asp.Net9.Ecommerce.Domain.Common
             return a.Equals(b);
         }
 
-        public static bool operator !=(BaseEntity a, BaseEntity b)
+        public static bool operator !=(BaseEntity? a, BaseEntity? b)
         {
             return !(a == b);
         }

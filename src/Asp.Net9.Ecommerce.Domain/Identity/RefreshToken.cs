@@ -1,8 +1,10 @@
 using Asp.Net9.Ecommerce.Domain.Common;
+using System;
+using System.Collections.Generic;
 
 namespace Asp.Net9.Ecommerce.Domain.Identity
 {
-    public class RefreshToken : BaseEntity
+    public class RefreshToken : ValueObject
     {
         public string Token { get; private set; }
         public Guid UserId { get; private set; }
@@ -34,6 +36,16 @@ namespace Asp.Net9.Ecommerce.Domain.Identity
             RevokedOnUtc = DateTime.UtcNow;
             ReplacedByToken = replacedByToken;
             ReasonRevoked = reason;
+        }
+
+        protected override IEnumerable<object> GetEqualityComponents()
+        {
+            yield return Token;
+            yield return UserId;
+            yield return ExpiresOnUtc;
+            if (RevokedOnUtc.HasValue) yield return RevokedOnUtc.Value;
+            if (ReplacedByToken != null) yield return ReplacedByToken;
+            if (ReasonRevoked != null) yield return ReasonRevoked;
         }
     }
 } 

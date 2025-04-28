@@ -30,6 +30,19 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Identity
             {
                 entity.Property(e => e.FirstName).HasMaxLength(100);
                 entity.Property(e => e.LastName).HasMaxLength(100);
+
+                // Configure RefreshTokens as owned entity
+                entity.OwnsMany(e => e.RefreshTokens, rt =>
+                {
+                    rt.ToTable("UserRefreshTokens");
+                    rt.WithOwner(t => t.User).HasForeignKey(t => t.UserId);
+                    
+                    // Composite key of UserId and Token
+                    rt.HasKey(t => new { t.UserId, t.Token });
+
+                    rt.Property(t => t.Token).IsRequired();
+                    rt.Property(t => t.ExpiresOnUtc).IsRequired();
+                });
             });
 
             // Configure AppRole

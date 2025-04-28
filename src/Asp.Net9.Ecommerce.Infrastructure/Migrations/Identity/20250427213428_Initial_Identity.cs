@@ -5,10 +5,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
 
-namespace Asp.Net9.Ecommerce.Infrastructure.Migrations
+namespace Asp.Net9.Ecommerce.Infrastructure.Migrations.Identity
 {
     /// <inheritdoc />
-    public partial class InitialIdentityMigration : Migration
+    public partial class Initial_Identity : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -121,6 +121,28 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "UserRefreshTokens",
+                columns: table => new
+                {
+                    Token = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ExpiresOnUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    RevokedOnUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ReplacedByToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ReasonRevoked = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserRefreshTokens", x => new { x.UserId, x.Token });
+                    table.ForeignKey(
+                        name: "FK_UserRefreshTokens_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "UserRoles",
                 columns: table => new
                 {
@@ -169,8 +191,8 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Migrations
                 columns: new[] { "Id", "ConcurrencyStamp", "CreatedAt", "Description", "Name", "NormalizedName", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { new Guid("308660dc-ae51-480f-824d-7dca6714c3e2"), null, new DateTime(2025, 4, 13, 22, 51, 22, 668, DateTimeKind.Utc).AddTicks(2749), "Full access to all features", "Admin", "ADMIN", null },
-                    { new Guid("d7be43da-622c-4cfe-98a9-5a5161120d24"), null, new DateTime(2025, 4, 13, 22, 51, 22, 678, DateTimeKind.Utc).AddTicks(5938), "Standard customer access", "Customer", "CUSTOMER", null }
+                    { new Guid("308660dc-ae51-480f-824d-7dca6714c3e2"), null, new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Full access to all features", "Admin", "ADMİN", null },
+                    { new Guid("d7be43da-622c-4cfe-98a9-5a5161120d24"), null, new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Standard customer access", "Customer", "CUSTOMER", null }
                 });
 
             migrationBuilder.CreateIndex(
@@ -224,6 +246,9 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "UserLogins");
+
+            migrationBuilder.DropTable(
+                name: "UserRefreshTokens");
 
             migrationBuilder.DropTable(
                 name: "UserRoles");

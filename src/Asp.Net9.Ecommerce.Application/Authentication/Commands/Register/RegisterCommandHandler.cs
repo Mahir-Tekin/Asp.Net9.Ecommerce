@@ -40,19 +40,13 @@ namespace Asp.Net9.Ecommerce.Application.Authentication.Commands.Register
                 return Result.Failure<AuthResponse>(roleResult.Error);
             }
 
-            // 3. Get user roles (should now include Customer role)
-            var rolesResult = await _identityService.GetUserRolesAsync(result.Value);
-            if (rolesResult.IsFailure)
-            {
-                return Result.Failure<AuthResponse>(rolesResult.Error);
-            }
-
-            // 4. Generate tokens
-            var token = _jwtService.GenerateToken(result.Value, rolesResult.Value);
+            // 3. Generate tokens using the known Customer role
+            var roles = new List<string> { AppRoles.Customer };
+            var token = _jwtService.GenerateToken(result.Value, roles);
             var refreshToken = _jwtService.GenerateRefreshToken();
             var expiryTime = _jwtService.GetRefreshTokenExpiryTime();
 
-            // 5. Store refresh token
+            // 4. Store refresh token
             var refreshTokenResult = await _identityService.AddRefreshTokenAsync(
                 result.Value,
                 refreshToken,
@@ -63,7 +57,7 @@ namespace Asp.Net9.Ecommerce.Application.Authentication.Commands.Register
                 return Result.Failure<AuthResponse>(refreshTokenResult.Error);
             }
 
-            // 6. Return full auth response
+            // 5. Return full auth response
             var response = new AuthResponse
             {
                 AccessToken = token,
@@ -71,7 +65,7 @@ namespace Asp.Net9.Ecommerce.Application.Authentication.Commands.Register
                 UserId = result.Value,
                 Email = request.Email,
                 FullName = $"{request.FirstName} {request.LastName}",
-                Roles = rolesResult.Value.ToList(),
+                Roles = roles,
                 RefreshTokenExpiryTime = expiryTime
             };
 

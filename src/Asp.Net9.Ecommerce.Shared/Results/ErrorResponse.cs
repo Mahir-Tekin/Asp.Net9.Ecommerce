@@ -40,9 +40,19 @@ namespace Asp.Net9.Ecommerce.Shared.Results
             return new ErrorResponse(message, "UNAUTHORIZED", ErrorType.Unauthorized);
         }
 
+        public static ErrorResponse Forbidden(string message = "Access forbidden")
+        {
+            return new ErrorResponse(message, "FORBIDDEN", ErrorType.Forbidden);
+        }
+
         public static ErrorResponse General(string message, string code = "GENERAL_ERROR")
         {
             return new ErrorResponse(message, code, ErrorType.General);
+        }
+
+        public static ErrorResponse Conflict(string message = "A conflict occurred with an existing resource")
+        {
+            return new ErrorResponse(message, "CONFLICT", ErrorType.Conflict);
         }
     }
 } 

@@ -9,11 +9,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Asp.Net9.Ecommerce.Infrastructure.Migrations
+namespace Asp.Net9.Ecommerce.Infrastructure.Migrations.Identity
 {
     [DbContext(typeof(AppIdentityDbContext))]
-    [Migration("20250413225123_InitialIdentityMigration")]
-    partial class InitialIdentityMigration
+    [Migration("20250427213428_Initial_Identity")]
+    partial class Initial_Identity
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -67,15 +67,15 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Migrations
                         new
                         {
                             Id = new Guid("308660dc-ae51-480f-824d-7dca6714c3e2"),
-                            CreatedAt = new DateTime(2025, 4, 13, 22, 51, 22, 668, DateTimeKind.Utc).AddTicks(2749),
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Full access to all features",
                             Name = "Admin",
-                            NormalizedName = "ADMIN"
+                            NormalizedName = "ADMİN"
                         },
                         new
                         {
                             Id = new Guid("d7be43da-622c-4cfe-98a9-5a5161120d24"),
-                            CreatedAt = new DateTime(2025, 4, 13, 22, 51, 22, 678, DateTimeKind.Utc).AddTicks(5938),
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Standard customer access",
                             Name = "Customer",
                             NormalizedName = "CUSTOMER"
@@ -260,6 +260,41 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("UserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("Asp.Net9.Ecommerce.Domain.Identity.AppUser", b =>
+                {
+                    b.OwnsMany("Asp.Net9.Ecommerce.Domain.Identity.RefreshToken", "RefreshTokens", b1 =>
+                        {
+                            b1.Property<Guid>("UserId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("Token")
+                                .HasColumnType("nvarchar(450)");
+
+                            b1.Property<DateTime>("ExpiresOnUtc")
+                                .HasColumnType("datetime2");
+
+                            b1.Property<string>("ReasonRevoked")
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.Property<string>("ReplacedByToken")
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.Property<DateTime?>("RevokedOnUtc")
+                                .HasColumnType("datetime2");
+
+                            b1.HasKey("UserId", "Token");
+
+                            b1.ToTable("UserRefreshTokens", (string)null);
+
+                            b1.WithOwner("User")
+                                .HasForeignKey("UserId");
+
+                            b1.Navigation("User");
+                        });
+
+                    b.Navigation("RefreshTokens");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>

@@ -5,6 +5,7 @@ using Asp.Net9.Ecommerce.Infrastructure.Authentication.Settings;
 using Asp.Net9.Ecommerce.Infrastructure.Identity;
 using Asp.Net9.Ecommerce.Infrastructure.Identity.Services;
 using Asp.Net9.Ecommerce.Infrastructure.Persistence;
+using Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -35,6 +36,12 @@ namespace Asp.Net9.Ecommerce.Infrastructure
 
             // Add Identity Service
             services.AddScoped<IIdentityService, IdentityService>();
+
+            // Add Repositories
+            services.AddScoped<ICategoryRepository, CategoryRepository>();
+
+            // Add ApplicationDbInitializer
+            services.AddScoped<ApplicationDbInitializer>();
 
             // Add JWT Authentication
             var jwtSettings = configuration.GetSection("JwtSettings").Get<JwtSettings>();
@@ -68,7 +75,14 @@ namespace Asp.Net9.Ecommerce.Infrastructure
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(
                     configuration.GetConnectionString("DefaultConnection"),
-                    b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+                    b => b.MigrationsAssembly("Asp.Net9.Ecommerce.Infrastructure")
+                         .MigrationsHistoryTable("__EFMigrationsHistoryApp")));
+
+            services.AddDbContext<AppIdentityDbContext>(options =>
+                options.UseSqlServer(
+                    configuration.GetConnectionString("DefaultConnection"),
+                    b => b.MigrationsAssembly("Asp.Net9.Ecommerce.Infrastructure")
+                         .MigrationsHistoryTable("__EFMigrationsHistoryIdentity")));
 
             return services;
         }

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Asp.Net9.Ecommerce.Shared.Results;
+using Microsoft.Extensions.Logging;
 
 namespace Asp.Net9.Ecommerce.Infrastructure.Identity.Services
 {
@@ -15,15 +16,18 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Identity.Services
         private readonly UserManager<AppUser> _userManager;
         private readonly SignInManager<AppUser> _signInManager;
         private readonly AppIdentityDbContext _context;
+        private readonly ILogger<IdentityService> _logger;
 
         public IdentityService(
             UserManager<AppUser> userManager,
             SignInManager<AppUser> signInManager,
-            AppIdentityDbContext context)
+            AppIdentityDbContext context,
+            ILogger<IdentityService> logger)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _context = context;
+            _logger = logger;
         }
 
         public async Task<Result<(string userId, AppUser user)>> ValidateCredentialsAsync(string email, string password)
@@ -116,22 +120,42 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Identity.Services
 
         public async Task<Result<RefreshToken>> AddRefreshTokenAsync(string userId, string token, DateTime expiryTime)
         {
+            _logger.LogDebug("Starting AddRefreshTokenAsync for User {UserId}", userId);
+            
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
                 return Result.Failure<RefreshToken>(ErrorResponse.NotFound("User not found"));
 
+            _logger.LogDebug("Before AddRefreshToken - User {UserId} ConcurrencyStamp: {ConcurrencyStamp}", 
+                userId, user.ConcurrencyStamp);
+
+            // Adding delay to simulate slower processing and help identify parallel operations
+            _logger.LogDebug("Sleeping for 5 seconds to simulate slow processing...");
+            await Task.Delay(5000); // 5 second delay
+
+            var beforeUpdateStamp = user.ConcurrencyStamp;
             user.AddRefreshToken(token, expiryTime);
+            _logger.LogDebug("After AddRefreshToken, before UpdateAsync - ConcurrencyStamp: {ConcurrencyStamp}", user.ConcurrencyStamp);
+
+            // Check if user has been modified in database
+            var currentUserInDb = await _userManager.FindByIdAsync(userId);
+            _logger.LogDebug("Current user in database - ConcurrencyStamp: {ConcurrencyStamp}", 
+                currentUserInDb?.ConcurrencyStamp);
+
             var result = await _userManager.UpdateAsync(user);
+
+            _logger.LogDebug("After UpdateAsync - User {UserId} Original ConcurrencyStamp: {OriginalStamp}, Current ConcurrencyStamp: {CurrentStamp}, Success: {Succeeded}", 
+                userId, beforeUpdateStamp, user.ConcurrencyStamp, result.Succeeded);
 
             if (!result.Succeeded)
             {
                 var errors = result.Errors
                     .Select(e => new ValidationError(e.Code, e.Description))
                     .ToList();
+                _logger.LogWarning("Failed to update user {UserId}. Errors: {@Errors}", userId, errors);
                 return Result.Failure<RefreshToken>(ErrorResponse.ValidationError(errors));
             }
 
-            await _context.SaveChangesAsync();
             return Result.Success(user.GetActiveRefreshToken());
         }
 
