@@ -78,12 +78,6 @@ namespace Asp.Net9.Ecommerce.Infrastructure
                     b => b.MigrationsAssembly("Asp.Net9.Ecommerce.Infrastructure")
                          .MigrationsHistoryTable("__EFMigrationsHistoryApp")));
 
-            services.AddDbContext<AppIdentityDbContext>(options =>
-                options.UseSqlServer(
-                    configuration.GetConnectionString("DefaultConnection"),
-                    b => b.MigrationsAssembly("Asp.Net9.Ecommerce.Infrastructure")
-                         .MigrationsHistoryTable("__EFMigrationsHistoryIdentity")));
-
             return services;
         }
     }

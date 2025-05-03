@@ -46,10 +46,38 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
 
         public async Task<IReadOnlyList<Category>> GetCategoryTreeAsync(CancellationToken cancellationToken = default)
         {
-            return await _context.Categories
-                .Include(c => c.ParentCategory)
-                .Where(c => c.DeletedAt == null && c.ParentCategoryId == null) // Get root categories
+            // Get all active categories in a single query
+            var allCategories = await _context.Categories
+                .Where(c => c.DeletedAt == null && c.IsActive)
                 .ToListAsync(cancellationToken);
+
+            // Organize categories by their parent ID for efficient lookup
+            var categoryLookup = allCategories
+                .ToDictionary(c => c.Id, c => c);
+
+            // Build the tree structure
+            var rootCategories = new List<Category>();
+            
+            // First, identify root categories
+            foreach (var category in allCategories)
+            {
+                if (category.ParentCategoryId == null)
+                {
+                    rootCategories.Add(category);
+                }
+            }
+            
+            // Then, build the hierarchy by attaching children to their parents
+            foreach (var category in allCategories)
+            {
+                if (category.ParentCategoryId != null && 
+                    categoryLookup.TryGetValue(category.ParentCategoryId.Value, out var parentCategory))
+                {
+                    parentCategory.AddSubCategory(category);
+                }
+            }
+
+            return rootCategories;
         }
 
         public void Add(Category category)

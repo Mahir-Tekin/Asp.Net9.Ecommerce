@@ -91,5 +91,17 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
         {
             return slug.All(c => char.IsLetterOrDigit(c) || c == '-');
         }
+
+        // Method to add a subcategory (for repository use)
+        public void AddSubCategory(Category subCategory)
+        {
+            if (subCategory == null)
+                throw new ArgumentNullException(nameof(subCategory));
+
+            if (_subCategories.Any(sc => sc.Id == subCategory.Id))
+                return; // Skip if subcategory already exists
+                
+            _subCategories.Add(subCategory);
+        }
     }
 } 

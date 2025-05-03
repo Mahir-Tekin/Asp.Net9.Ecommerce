@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Asp.Net9.Ecommerce.Infrastructure.Infrastructure.Migrations.Identity
+namespace Asp.Net9.Ecommerce.Infrastructure.Migrations.Identity
 {
     /// <inheritdoc />
     public partial class Fix_Role_Normalization : Migration
