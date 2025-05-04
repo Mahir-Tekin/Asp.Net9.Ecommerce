@@ -10,21 +10,20 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
         public string SKU { get; private set; }
         public string Name { get; private set; }
         
-        // Physical Properties
-        public decimal Weight { get; private set; }
-        public string Dimensions { get; private set; }
-        
         // Pricing - each variant can have its own price or inherit from product
         private decimal? _price;
         public decimal Price => _price ?? Product.BasePrice;
-        private decimal? _discountedPrice;
-        public decimal? DiscountedPrice => _discountedPrice ?? Product.DiscountedPrice;
         
         // Inventory
         private int _stockQuantity;
-        public int StockQuantity => Product.TrackInventory ? _stockQuantity : 0;
+        public int StockQuantity => _stockQuantity;
         public int MinStockThreshold { get; private set; }
         public bool IsActive { get; private set; }
+        public bool TrackInventory { get; private set; }
+
+        // Variations - stores type name and option value
+        private readonly Dictionary<string, string> _variations = new();
+        public IReadOnlyDictionary<string, string> Variations => _variations;
 
         // Navigation property
         public Product Product { get; private set; }
@@ -37,11 +36,10 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             string name,
             decimal? price = null,
             int stockQuantity = 0,
-            decimal weight = 0,
-            string dimensions = null,
-            int minStockThreshold = 10)
+            int minStockThreshold = 10,
+            bool trackInventory = true)
         {
-            var errors = ValidateInputs(sku, name, price, weight, minStockThreshold);
+            var errors = ValidateInputs(sku, name, price, minStockThreshold);
             if (errors.Any())
                 return Result.Failure<ProductVariant>(ErrorResponse.ValidationError(errors));
 
@@ -52,13 +50,51 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
                 Name = name.Trim(),
                 _price = price,
                 _stockQuantity = stockQuantity,
-                Weight = weight,
-                Dimensions = dimensions?.Trim(),
                 MinStockThreshold = minStockThreshold,
-                IsActive = true
+                IsActive = true,
+                TrackInventory = trackInventory
             };
 
             return Result.Success(variant);
+        }
+
+        public Result SetVariationOption(string typeName, string optionValue)
+        {
+            _variations[typeName.Trim().ToLowerInvariant()] = optionValue.Trim().ToLowerInvariant();
+            return Result.Success();
+        }
+
+        public Result RemoveVariation(string typeName)
+        {
+            if (!_variations.ContainsKey(typeName))
+                return Result.NotFound($"Variation type {typeName} not found");
+
+            _variations.Remove(typeName);
+            return Result.Success();
+        }
+
+        public bool HasVariation(string typeName)
+        {
+            return _variations.ContainsKey(typeName.Trim().ToLowerInvariant());
+        }
+
+        public string? GetVariationOption(string typeName)
+        {
+            return _variations.TryGetValue(typeName.Trim().ToLowerInvariant(), out var value) ? value : null;
+        }
+
+        public Result UpdateStock(int quantity)
+        {
+            if (!TrackInventory)
+                return Result.Failure(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("Stock", "This variant does not track inventory") }));
+
+            if (quantity < 0)
+                return Result.Failure(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("Stock", "Stock quantity cannot be negative") }));
+
+            _stockQuantity = quantity;
+            return Result.Success();
         }
 
         public Result UpdatePrice(decimal? newPrice)
@@ -68,53 +104,6 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
                     new List<ValidationError> { new("Price", "Price must be greater than zero") }));
 
             _price = newPrice;
-
-            // If discounted price exists and is now higher than or equal to new price, remove it
-            if (_price.HasValue && _discountedPrice.HasValue && _discountedPrice.Value >= _price.Value)
-            {
-                _discountedPrice = null;
-            }
-
-            return Result.Success();
-        }
-
-        public Result SetDiscount(decimal? discountedPrice)
-        {
-            if (discountedPrice.HasValue)
-            {
-                if (discountedPrice.Value <= 0)
-                    return Result.Failure(ErrorResponse.ValidationError(
-                        new List<ValidationError> { new("DiscountedPrice", "Discounted price must be greater than zero") }));
-
-                var currentPrice = Price; // This will get either variant price or product price
-                if (discountedPrice.Value >= currentPrice)
-                    return Result.Failure(ErrorResponse.ValidationError(
-                        new List<ValidationError> { new("DiscountedPrice", "Discounted price must be less than current price") }));
-            }
-
-            _discountedPrice = discountedPrice;
-            return Result.Success();
-        }
-
-        public Result UpdateStock(int quantity)
-        {
-            if (!Product.TrackInventory)
-                return Result.Failure(ErrorResponse.ValidationError(
-                    new List<ValidationError> { new("StockQuantity", "This product does not track inventory") }));
-
-            if (quantity < 0)
-                return Result.Failure(ErrorResponse.ValidationError(
-                    new List<ValidationError> { new("StockQuantity", "Stock quantity cannot be negative") }));
-
-            var oldQuantity = _stockQuantity;
-            _stockQuantity = quantity;
-
-            // Check if stock is below threshold
-            if (_stockQuantity <= MinStockThreshold)
-            {
-                AddDomainEvent(new VariantLowStockEvent(Id, ProductId, _stockQuantity, MinStockThreshold));
-            }
-
             return Result.Success();
         }
 
@@ -129,7 +118,7 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             // Check if current stock is already below the new threshold
             if (_stockQuantity <= MinStockThreshold)
             {
-                AddDomainEvent(new VariantLowStockEvent(Id, ProductId, _stockQuantity, MinStockThreshold));
+                // TODO: Handle low stock notification in the future
             }
 
             return Result.Success();
@@ -153,18 +142,7 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             return Result.Success();
         }
 
-        public Result UpdatePhysicalProperties(decimal weight, string dimensions)
-        {
-            if (weight < 0)
-                return Result.Failure(ErrorResponse.ValidationError(
-                    new List<ValidationError> { new("Weight", "Weight cannot be negative") }));
-
-            Weight = weight;
-            Dimensions = dimensions?.Trim();
-            return Result.Success();
-        }
-
-        private static List<ValidationError> ValidateInputs(string sku, string name, decimal? price, decimal weight, int minStockThreshold)
+        private static List<ValidationError> ValidateInputs(string sku, string name, decimal? price, int minStockThreshold)
         {
             var errors = new List<ValidationError>();
 
@@ -180,9 +158,6 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
 
             if (price.HasValue && price.Value <= 0)
                 errors.Add(new ValidationError("Price", "Price must be greater than zero"));
-
-            if (weight < 0)
-                errors.Add(new ValidationError("Weight", "Weight cannot be negative"));
 
             if (minStockThreshold < 0)
                 errors.Add(new ValidationError("MinStockThreshold", "Minimum stock threshold cannot be negative"));

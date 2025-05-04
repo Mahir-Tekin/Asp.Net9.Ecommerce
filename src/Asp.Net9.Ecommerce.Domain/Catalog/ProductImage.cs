@@ -1,45 +1,38 @@
 using Asp.Net9.Ecommerce.Domain.Common;
+using Asp.Net9.Ecommerce.Shared.Results;
 
 namespace Asp.Net9.Ecommerce.Domain.Catalog
 {
-    public class ProductImage : BaseEntity
+    public class ProductImage : ValueObject
     {
-        public Guid ProductId { get; private set; }
         public string Url { get; private set; }
-        public string AltText { get; private set; }
-        public int DisplayOrder { get; private set; }
+        public string? AltText { get; private set; }
         public bool IsMain { get; private set; }
 
-        // Navigation property
-        public Product Product { get; private set; }
-
-        protected ProductImage() { } // For EF Core
-
-        public static ProductImage Create(Guid productId, string url, string altText, int displayOrder, bool isMain)
+        private ProductImage(string url, string? altText, bool isMain)
         {
-            return new ProductImage
-            {
-                ProductId = productId,
-                Url = url,
-                AltText = altText ?? string.Empty,
-                DisplayOrder = displayOrder,
-                IsMain = isMain
-            };
+            Url = url;
+            AltText = altText;
+            IsMain = isMain;
         }
 
-        public void UpdateDisplayOrder(int newOrder)
+        public static Result<ProductImage> Create(string url, string? altText = null, bool isMain = false)
         {
-            DisplayOrder = newOrder;
+            if (string.IsNullOrWhiteSpace(url))
+                return Result.Failure<ProductImage>(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("Url", "Image URL is required") }));
+
+            return Result.Success(new ProductImage(url, altText, isMain));
         }
 
-        public void SetMain()
-        {
-            IsMain = true;
-        }
+        public void SetMain() => IsMain = true;
+        public void UnsetMain() => IsMain = false;
 
-        public void UnsetMain()
+        protected override IEnumerable<object> GetEqualityComponents()
         {
-            IsMain = false;
+            yield return Url;
+            if (AltText != null) yield return AltText;
+            yield return IsMain;
         }
     }
 } 
