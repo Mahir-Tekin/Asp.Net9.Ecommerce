@@ -1,9 +1,10 @@
 using Asp.Net9.Ecommerce.Domain.Common;
+using Asp.Net9.Ecommerce.Domain.Catalog.Events;
 using Asp.Net9.Ecommerce.Shared.Results;
 
 namespace Asp.Net9.Ecommerce.Domain.Catalog
 {
-    public class Category : BaseEntity
+    public class Category : AggregateRoot
     {
         public string Name { get; private set; }
         public string Description { get; private set; }
@@ -24,14 +25,19 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             if (errors.Any())
                 return Result.Failure<Category>(ErrorResponse.ValidationError(errors));
 
-            return Result.Success(new Category
+            var category = new Category
             {
                 Name = name.Trim(),
                 Description = description?.Trim(),
                 Slug = slug.Trim().ToLowerInvariant(),
                 IsActive = true,
                 ParentCategoryId = parentCategoryId
-            });
+            };
+
+            // Add domain event
+            category.AddDomainEvent(new CategoryCreatedEvent(category.Id, category.Name, category.Slug));
+
+            return Result.Success(category);
         }
 
         public Result Update(string name, string description, string slug)
@@ -43,6 +49,9 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             Name = name.Trim();
             Description = description?.Trim();
             Slug = slug.Trim().ToLowerInvariant();
+
+            // Add domain event
+            AddDomainEvent(new CategoryUpdatedEvent(Id, Name, Slug));
 
             return Result.Success();
         }
@@ -63,6 +72,38 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
 
             IsActive = true;
             return Result.Success();
+        }
+
+        public Result Delete()
+        {
+            if (_subCategories.Any())
+                return Result.Failure(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("", "Cannot delete category with subcategories") }));
+
+            SetDeleted();
+            AddDomainEvent(new CategoryDeletedEvent(Id));
+            return Result.Success();
+        }
+
+        public void AddSubCategory(Category subCategory)
+        {
+            if (subCategory == null)
+                throw new ArgumentNullException(nameof(subCategory));
+
+            if (_subCategories.Any(sc => sc.Id == subCategory.Id))
+                return; // Skip if subcategory already exists
+
+            // Check for circular reference
+            if (IsInHierarchy(subCategory.Id))
+                throw new InvalidOperationException("Circular reference detected in category hierarchy");
+                
+            _subCategories.Add(subCategory);
+        }
+
+        private bool IsInHierarchy(Guid categoryId)
+        {
+            if (Id == categoryId) return true;
+            return _subCategories.Any(sc => sc.IsInHierarchy(categoryId));
         }
 
         private static List<ValidationError> ValidateInputs(string name, string description, string slug)
@@ -90,18 +131,6 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
         private static bool IsValidSlug(string slug)
         {
             return slug.All(c => char.IsLetterOrDigit(c) || c == '-');
-        }
-
-        // Method to add a subcategory (for repository use)
-        public void AddSubCategory(Category subCategory)
-        {
-            if (subCategory == null)
-                throw new ArgumentNullException(nameof(subCategory));
-
-            if (_subCategories.Any(sc => sc.Id == subCategory.Id))
-                return; // Skip if subcategory already exists
-                
-            _subCategories.Add(subCategory);
         }
     }
 } 

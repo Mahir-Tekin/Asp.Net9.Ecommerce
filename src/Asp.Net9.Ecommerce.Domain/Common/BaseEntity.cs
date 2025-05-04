@@ -10,7 +10,6 @@ namespace Asp.Net9.Ecommerce.Domain.Common
         public DateTime? DeletedAt { get; protected set; } 
         public bool IsDeleted => DeletedAt.HasValue;
 
-
         protected BaseEntity()
         {
             // Protected constructor to enforce creation through factory methods
