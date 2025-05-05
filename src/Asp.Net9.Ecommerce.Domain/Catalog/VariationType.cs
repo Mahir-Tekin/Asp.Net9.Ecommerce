@@ -60,9 +60,11 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
                 return Result.Failure(ErrorResponse.ValidationError(
                     new List<ValidationError> { new("Value", "This option value already exists") }));
 
-            var option = new VariantOption(value.Trim().ToLowerInvariant(), displayValue.Trim());
-            _options.Add(option);
+            var optionResult = VariantOption.Create(value, displayValue);
+            if (optionResult.IsFailure)
+                return Result.Failure(optionResult.Error);
 
+            _options.Add(optionResult.Value);
             return Result.Success();
         }
 
@@ -119,24 +121,6 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
                 errors.Add(new ValidationError("DisplayName", "Display name cannot exceed 100 characters"));
 
             return errors;
-        }
-    }
-
-    public class VariantOption : ValueObject
-    {
-        public string Value { get; private set; }
-        public string DisplayValue { get; private set; }
-
-        public VariantOption(string value, string displayValue)
-        {
-            Value = value;
-            DisplayValue = displayValue;
-        }
-
-        protected override IEnumerable<object> GetEqualityComponents()
-        {
-            yield return Value.ToLowerInvariant();
-            yield return DisplayValue;
         }
     }
 } 

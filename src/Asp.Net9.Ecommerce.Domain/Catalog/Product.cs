@@ -34,13 +34,21 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
 
         protected Product() { } // For EF Core
 
+        public record VariantData
+        {
+            public string SKU { get; init; }
+            public string Name { get; init; }
+            public decimal? Price { get; init; }
+            public IDictionary<string, string> Variations { get; init; }
+        }
+
         public static Result<Product> Create(
             string name,
             string description,
             decimal basePrice,
             Guid categoryId,
             IEnumerable<VariationType>? variantTypes,
-            IEnumerable<(string sku, string name, decimal? price, IDictionary<string, string> variations)> variantData)
+            IEnumerable<VariantData> variantData)
         {
             var errors = ValidateInputs(name, description, basePrice);
             if (errors.Any())
@@ -77,7 +85,7 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
 
             // Check for duplicate SKUs in variant data
             var duplicateSKUs = variantDataList
-                .GroupBy(v => v.sku)
+                .GroupBy(v => v.SKU)
                 .Where(g => g.Count() > 1)
                 .Select(g => g.Key)
                 .ToList();
@@ -92,9 +100,9 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             {
                 var variantResult = ProductVariant.Create(
                     productId: product.Id,
-                    sku: data.sku,
-                    name: data.name,
-                    price: data.price
+                    sku: data.SKU,
+                    name: data.Name,
+                    price: data.Price
                 );
 
                 if (variantResult.IsFailure)
@@ -108,31 +116,31 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
                     // Validate all required variant types are provided
                     var missingTypes = product._variantTypes
                         .Select(vt => vt.Name)
-                        .Except(data.variations.Keys)
+                        .Except(data.Variations.Keys)
                         .ToList();
 
                     if (missingTypes.Any())
                         return Result.Failure<Product>(ErrorResponse.ValidationError(
                             new List<ValidationError> { new("Variant", 
-                                $"Variant with SKU '{data.sku}' is missing options for variant types: {string.Join(", ", missingTypes)}") }));
+                                $"Variant with SKU '{data.SKU}' is missing options for variant types: {string.Join(", ", missingTypes)}") }));
 
                     // Add and validate each variation
-                    foreach (var variation in data.variations)
+                    foreach (var variation in data.Variations)
                     {
                         var type = product._variantTypes.FirstOrDefault(t => t.Name == variation.Key);
                         if (!type.Options.Any(o => o.Value == variation.Value))
                             return Result.Failure<Product>(ErrorResponse.ValidationError(
                                 new List<ValidationError> { new("Variant", 
-                                    $"Option '{variation.Value}' is not valid for variant type '{variation.Key}' in variant with SKU '{data.sku}'") }));
+                                    $"Option '{variation.Value}' is not valid for variant type '{variation.Key}' in variant with SKU '{data.SKU}'") }));
 
-                        variant.SetVariationOption(variation.Key, variation.Value);
+                        variant.AddVariation(variation.Key, variation.Value);
                     }
                 }
 
                 product._variants.Add(variant);
             }
 
-            product.AddDomainEvent(new ProductCreatedEvent(product.Id, product.Name, variantDataList.First().sku, product.BasePrice));
+            product.AddDomainEvent(new ProductCreatedEvent(product.Id, product.Name, variantDataList.First().SKU, product.BasePrice));
 
             return Result.Success(product);
         }
@@ -175,7 +183,7 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
                 // Check if variant provides all required variant types
                 var missingTypes = _variantTypes
                     .Select(vt => vt.Name)
-                    .Except(variant.Variations.Keys)
+                    .Except(variant.GetVariations().Keys)
                     .ToList();
 
                 if (missingTypes.Any())
@@ -184,7 +192,7 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             }
 
             // Validate that all variant's options belong to product's variant types
-            foreach (var variation in variant.Variations)
+            foreach (var variation in variant.GetVariations())
             {
                 var type = _variantTypes.FirstOrDefault(t => t.Name == variation.Key);
                 if (type == null)

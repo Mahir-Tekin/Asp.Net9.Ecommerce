@@ -23,7 +23,6 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
 
         // Variations - stores type name and option value
         private readonly Dictionary<string, string> _variations = new();
-        public IReadOnlyDictionary<string, string> Variations => _variations;
 
         // Navigation property
         public Product Product { get; private set; }
@@ -58,18 +57,26 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             return Result.Success(variant);
         }
 
-        public Result SetVariationOption(string typeName, string optionValue)
+        public Result AddVariation(string typeName, string optionValue)
         {
+            if (string.IsNullOrWhiteSpace(typeName))
+                return Result.Failure(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("TypeName", "Variant type name is required") }));
+
+            if (string.IsNullOrWhiteSpace(optionValue))
+                return Result.Failure(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("OptionValue", "Option value is required") }));
+
             _variations[typeName.Trim().ToLowerInvariant()] = optionValue.Trim().ToLowerInvariant();
             return Result.Success();
         }
 
         public Result RemoveVariation(string typeName)
         {
-            if (!_variations.ContainsKey(typeName))
+            if (!_variations.ContainsKey(typeName.Trim().ToLowerInvariant()))
                 return Result.NotFound($"Variation type {typeName} not found");
 
-            _variations.Remove(typeName);
+            _variations.Remove(typeName.Trim().ToLowerInvariant());
             return Result.Success();
         }
 
@@ -81,6 +88,15 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
         public string? GetVariationOption(string typeName)
         {
             return _variations.TryGetValue(typeName.Trim().ToLowerInvariant(), out var value) ? value : null;
+        }
+
+        public IReadOnlyDictionary<string, string> GetVariations()
+        {
+            return _variations.ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value,
+                StringComparer.OrdinalIgnoreCase
+            );
         }
 
         public Result UpdateStock(int quantity)
