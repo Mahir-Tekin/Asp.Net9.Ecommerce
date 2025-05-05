@@ -1,4 +1,3 @@
-using Asp.Net9.Ecommerce.Application.Common.Interfaces;
 using Asp.Net9.Ecommerce.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Asp.Net9.Ecommerce.Shared.Results;
 using Microsoft.Extensions.Logging;
+using Asp.Net9.Ecommerce.Application.Common.Interfaces.ServiceInterfaces;
 
 namespace Asp.Net9.Ecommerce.Infrastructure.Identity.Services
 {

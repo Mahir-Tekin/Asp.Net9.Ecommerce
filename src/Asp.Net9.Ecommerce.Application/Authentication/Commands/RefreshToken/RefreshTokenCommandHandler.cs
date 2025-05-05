@@ -1,6 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using Asp.Net9.Ecommerce.Application.Authentication.DTOs;
-using Asp.Net9.Ecommerce.Application.Common.Interfaces;
+using Asp.Net9.Ecommerce.Application.Common.Interfaces.ServiceInterfaces;
 using Asp.Net9.Ecommerce.Shared.Results;
 using MediatR;
 

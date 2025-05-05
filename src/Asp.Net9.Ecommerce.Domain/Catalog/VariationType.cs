@@ -38,8 +38,11 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
                     new List<ValidationError> { new("Value", "An option with this value already exists") }));
             }
 
-            var option = VariantOption.Create(value, displayValue);
-            _options.Add(option);
+            var optionResult = VariantOption.Create(value, displayValue);
+            if (optionResult.IsFailure)
+                return Result.Failure(optionResult.Error);
+
+            _options.Add(optionResult.Value);
             return Result.Success();
         }
 

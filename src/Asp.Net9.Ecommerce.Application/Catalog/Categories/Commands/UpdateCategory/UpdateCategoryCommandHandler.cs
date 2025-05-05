@@ -6,43 +6,53 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Categories.Commands.UpdateCateg
 {
     public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryCommand, Result>
     {
-        private readonly ICategoryRepository _categoryRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public UpdateCategoryCommandHandler(ICategoryRepository categoryRepository)
+        public UpdateCategoryCommandHandler(IUnitOfWork unitOfWork)
         {
-            _categoryRepository = categoryRepository;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<Result> Handle(UpdateCategoryCommand request, CancellationToken cancellationToken)
         {
-            var category = await _categoryRepository.GetByIdAsync(request.Id, cancellationToken);
-            
-            if (category == null)
-                return Result.Failure(ErrorResponse.NotFound("Category not found."));
-
-            // Check if slug is being changed and if it's already in use
-            if (category.Slug != request.Slug && 
-                await _categoryRepository.ExistsBySlugAsync(request.Slug, cancellationToken))
+            try
             {
-                return Result.Failure(ErrorResponse.Conflict($"A category with slug '{request.Slug}' already exists."));
+                await _unitOfWork.BeginTransactionAsync(cancellationToken);
+
+                var category = await _unitOfWork.Categories.GetByIdAsync(request.Id, cancellationToken);
+                
+                if (category == null)
+                    return Result.Failure(ErrorResponse.NotFound("Category not found."));
+
+                // Check if slug is being changed and if it's already in use
+                if (category.Slug != request.Slug && 
+                    await _unitOfWork.Categories.ExistsBySlugAsync(request.Slug, cancellationToken))
+                {
+                    return Result.Failure(ErrorResponse.Conflict($"A category with slug '{request.Slug}' already exists."));
+                }
+
+                var updateResult = category.Update(request.Name, request.Description, request.Slug);
+                if (updateResult.IsFailure)
+                    return updateResult;
+
+                // Handle IsActive state change
+                if (category.IsActive != request.IsActive)
+                {
+                    var stateChangeResult = request.IsActive ? category.Activate() : category.Deactivate();
+                    if (stateChangeResult.IsFailure)
+                        return stateChangeResult;
+                }
+
+                _unitOfWork.Categories.Update(category);
+                await _unitOfWork.CommitTransactionAsync(cancellationToken);
+
+                return Result.Success();
             }
-
-            var updateResult = category.Update(request.Name, request.Description, request.Slug);
-            if (updateResult.IsFailure)
-                return updateResult;
-
-            // Handle IsActive state change
-            if (category.IsActive != request.IsActive)
+            catch
             {
-                var stateChangeResult = request.IsActive ? category.Activate() : category.Deactivate();
-                if (stateChangeResult.IsFailure)
-                    return stateChangeResult;
+                await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                throw;
             }
-
-            _categoryRepository.Update(category);
-            await _categoryRepository.SaveChangesAsync(cancellationToken);
-
-            return Result.Success();
         }
     }
 } 

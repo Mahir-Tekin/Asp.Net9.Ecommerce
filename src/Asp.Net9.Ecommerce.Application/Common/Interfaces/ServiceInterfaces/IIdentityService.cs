@@ -1,7 +1,7 @@
 using Asp.Net9.Ecommerce.Domain.Identity;
 using Asp.Net9.Ecommerce.Shared.Results;
 
-namespace Asp.Net9.Ecommerce.Application.Common.Interfaces
+namespace Asp.Net9.Ecommerce.Application.Common.Interfaces.ServiceInterfaces
 {
     public interface IIdentityService
     {

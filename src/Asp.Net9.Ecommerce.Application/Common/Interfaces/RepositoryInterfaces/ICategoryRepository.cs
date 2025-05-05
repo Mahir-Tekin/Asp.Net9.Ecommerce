@@ -1,6 +1,6 @@
 using Asp.Net9.Ecommerce.Domain.Catalog;
 
-namespace Asp.Net9.Ecommerce.Application.Common.Interfaces
+namespace Asp.Net9.Ecommerce.Application.Common.Interfaces.RepositoryInterfaces
 {
     public interface ICategoryRepository
     {
@@ -13,6 +13,5 @@ namespace Asp.Net9.Ecommerce.Application.Common.Interfaces
         void Add(Category category);
         void Update(Category category);
         void Delete(Category category);
-        Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 } 

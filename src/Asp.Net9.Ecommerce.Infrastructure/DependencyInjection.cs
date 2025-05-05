@@ -1,4 +1,5 @@
-using Asp.Net9.Ecommerce.Application.Common.Interfaces;
+using Asp.Net9.Ecommerce.Application.Common.Interfaces.RepositoryInterfaces;
+using Asp.Net9.Ecommerce.Application.Common.Interfaces.ServiceInterfaces;
 using Asp.Net9.Ecommerce.Domain.Identity;
 using Asp.Net9.Ecommerce.Infrastructure.Authentication.Services;
 using Asp.Net9.Ecommerce.Infrastructure.Authentication.Settings;

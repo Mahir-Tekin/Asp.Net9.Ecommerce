@@ -6,29 +6,39 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Categories.Commands.DeleteCateg
 {
     public class DeleteCategoryCommandHandler : IRequestHandler<DeleteCategoryCommand, Result>
     {
-        private readonly ICategoryRepository _categoryRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public DeleteCategoryCommandHandler(ICategoryRepository categoryRepository)
+        public DeleteCategoryCommandHandler(IUnitOfWork unitOfWork)
         {
-            _categoryRepository = categoryRepository;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<Result> Handle(DeleteCategoryCommand request, CancellationToken cancellationToken)
         {
-            var category = await _categoryRepository.GetByIdAsync(request.Id, cancellationToken);
-            
-            if (category == null)
-                return Result.Failure(ErrorResponse.NotFound("Category not found."));
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
-            // Check if category has subcategories
-            var hasSubCategories = category.SubCategories.Any();
-            if (hasSubCategories)
-                return Result.Failure(ErrorResponse.General("Cannot delete a category that has subcategories.", "CATEGORY_HAS_SUBCATEGORIES"));
+                var category = await _unitOfWork.Categories.GetByIdAsync(request.Id, cancellationToken);
+                
+                if (category == null)
+                    return Result.Failure(ErrorResponse.NotFound("Category not found."));
 
-            _categoryRepository.Delete(category);
-            await _categoryRepository.SaveChangesAsync(cancellationToken);
+                // Check if category has subcategories
+                var hasSubCategories = category.SubCategories.Any();
+                if (hasSubCategories)
+                    return Result.Failure(ErrorResponse.General("Cannot delete a category that has subcategories.", "CATEGORY_HAS_SUBCATEGORIES"));
 
-            return Result.Success();
+                _unitOfWork.Categories.Delete(category);
+                await _unitOfWork.CommitTransactionAsync(cancellationToken);
+
+                return Result.Success();
+            }
+            catch
+            {
+                await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                throw;
+            }
         }
     }
 } 

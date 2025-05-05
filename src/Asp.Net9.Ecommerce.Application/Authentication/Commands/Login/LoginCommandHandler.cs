@@ -1,7 +1,7 @@
 using Asp.Net9.Ecommerce.Application.Authentication.DTOs;
-using Asp.Net9.Ecommerce.Application.Common.Interfaces;
 using MediatR;
 using Asp.Net9.Ecommerce.Shared.Results;
+using Asp.Net9.Ecommerce.Application.Common.Interfaces.ServiceInterfaces;
 
 namespace Asp.Net9.Ecommerce.Application.Authentication.Commands.Login
 {

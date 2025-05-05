@@ -1,4 +1,4 @@
-using Asp.Net9.Ecommerce.Application.Common.Interfaces;
+using Asp.Net9.Ecommerce.Application.Common.Interfaces.RepositoryInterfaces;
 using Asp.Net9.Ecommerce.Domain.Catalog;
 using Microsoft.EntityFrameworkCore;
 
@@ -84,12 +84,6 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
             // Soft delete the aggregate root
             category.SetDeleted();
             _context.Categories.Update(category);
-        }
-
-        public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-        {
-            // Save all changes in one transaction
-            return await _context.SaveChangesAsync(cancellationToken);
         }
     }
 } 

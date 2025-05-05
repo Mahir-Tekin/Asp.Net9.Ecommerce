@@ -7,47 +7,57 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Categories.Commands.CreateCateg
 {
     public class CreateCategoryCommandHandler : IRequestHandler<CreateCategoryCommand, Result<Guid>>
     {
-        private readonly ICategoryRepository _categoryRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public CreateCategoryCommandHandler(ICategoryRepository categoryRepository)
+        public CreateCategoryCommandHandler(IUnitOfWork unitOfWork)
         {
-            _categoryRepository = categoryRepository;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<Result<Guid>> Handle(CreateCategoryCommand request, CancellationToken cancellationToken)
         {
-            // Check if slug is unique
-            if (await _categoryRepository.ExistsBySlugAsync(request.Slug, cancellationToken))
+            try
             {
-                return Result.Failure<Guid>(ErrorResponse.Conflict($"Category with slug '{request.Slug}' already exists"));
-            }
+                await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
-            // Check if parent category exists if specified
-            if (request.ParentCategoryId.HasValue)
-            {
-                var parentExists = await _categoryRepository.ExistsByIdAsync(request.ParentCategoryId.Value, cancellationToken);
-                if (!parentExists)
+                // Check if slug is unique
+                if (await _unitOfWork.Categories.ExistsBySlugAsync(request.Slug, cancellationToken))
                 {
-                    return Result.Failure<Guid>(ErrorResponse.NotFound("Parent category not found"));
+                    return Result.Failure<Guid>(ErrorResponse.Conflict($"Category with slug '{request.Slug}' already exists"));
                 }
+
+                // Check if parent category exists if specified
+                if (request.ParentCategoryId.HasValue)
+                {
+                    var parentExists = await _unitOfWork.Categories.ExistsByIdAsync(request.ParentCategoryId.Value, cancellationToken);
+                    if (!parentExists)
+                    {
+                        return Result.Failure<Guid>(ErrorResponse.NotFound("Parent category not found"));
+                    }
+                }
+
+                // Create category using domain factory method
+                var categoryResult = Category.Create(
+                    request.Name,
+                    request.Description,
+                    request.Slug,
+                    request.ParentCategoryId);
+
+                if (categoryResult.IsFailure)
+                    return Result.Failure<Guid>(categoryResult.Error);
+
+                var category = categoryResult.Value;
+
+                _unitOfWork.Categories.Add(category);
+                await _unitOfWork.CommitTransactionAsync(cancellationToken);
+
+                return Result.Success(category.Id);
             }
-
-            // Create category using domain factory method
-            var categoryResult = Category.Create(
-                request.Name,
-                request.Description,
-                request.Slug,
-                request.ParentCategoryId);
-
-            if (categoryResult.IsFailure)
-                return Result.Failure<Guid>(categoryResult.Error);
-
-            var category = categoryResult.Value;
-
-            _categoryRepository.Add(category);
-            await _categoryRepository.SaveChangesAsync(cancellationToken);
-
-            return Result.Success(category.Id);
+            catch
+            {
+                await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                throw;
+            }
         }
     }
 } 
