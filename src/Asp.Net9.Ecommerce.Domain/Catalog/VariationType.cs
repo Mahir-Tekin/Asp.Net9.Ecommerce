@@ -16,9 +16,13 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
 
         public static Result<VariationType> Create(string name, string displayName)
         {
-            var errors = ValidateInputs(name, displayName);
-            if (errors.Any())
-                return Result.Failure<VariationType>(ErrorResponse.ValidationError(errors));
+            if (string.IsNullOrWhiteSpace(name))
+                return Result.Failure<VariationType>(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("Name", "Name is required") }));
+
+            if (string.IsNullOrWhiteSpace(displayName))
+                return Result.Failure<VariationType>(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("DisplayName", "Display name is required") }));
 
             var type = new VariationType
             {
@@ -30,25 +34,41 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             return Result.Success(type);
         }
 
+        public Result UpdateName(string name, string displayName)
+        {
+            var errors = ValidateInputs(name, displayName);
+            if (errors.Any())
+                return Result.Failure(ErrorResponse.ValidationError(errors));
+
+            Name = name.Trim().ToLowerInvariant();
+            DisplayName = displayName.Trim();
+            
+            return Result.Success();
+        }
+
         public Result AddOption(string value, string displayValue)
         {
-            if (_options.Any(o => o.Value == value))
-            {
+            if (string.IsNullOrWhiteSpace(value))
                 return Result.Failure(ErrorResponse.ValidationError(
-                    new List<ValidationError> { new("Value", "An option with this value already exists") }));
-            }
+                    new List<ValidationError> { new("Value", "Option value is required") }));
 
-            var optionResult = VariantOption.Create(value, displayValue);
-            if (optionResult.IsFailure)
-                return Result.Failure(optionResult.Error);
+            if (string.IsNullOrWhiteSpace(displayValue))
+                return Result.Failure(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("DisplayValue", "Option display value is required") }));
 
-            _options.Add(optionResult.Value);
+            if (_options.Any(o => o.Value == value.Trim().ToLowerInvariant()))
+                return Result.Failure(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("Value", "This option value already exists") }));
+
+            var option = new VariantOption(value.Trim().ToLowerInvariant(), displayValue.Trim());
+            _options.Add(option);
+
             return Result.Success();
         }
 
         public Result RemoveOption(string value)
         {
-            var option = _options.FirstOrDefault(o => o.Value == value);
+            var option = _options.FirstOrDefault(o => o.Value == value.Trim().ToLowerInvariant());
             if (option == null)
                 return Result.NotFound("Option not found");
 
@@ -99,6 +119,24 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
                 errors.Add(new ValidationError("DisplayName", "Display name cannot exceed 100 characters"));
 
             return errors;
+        }
+    }
+
+    public class VariantOption : ValueObject
+    {
+        public string Value { get; private set; }
+        public string DisplayValue { get; private set; }
+
+        public VariantOption(string value, string displayValue)
+        {
+            Value = value;
+            DisplayValue = displayValue;
+        }
+
+        protected override IEnumerable<object> GetEqualityComponents()
+        {
+            yield return Value.ToLowerInvariant();
+            yield return DisplayValue;
         }
     }
 } 

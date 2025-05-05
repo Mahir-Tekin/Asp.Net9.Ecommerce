@@ -39,12 +39,18 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             string description,
             decimal basePrice,
             Guid categoryId,
-            ProductVariant defaultVariant,
-            IEnumerable<VariationType>? variantTypes = null)
+            IEnumerable<VariationType>? variantTypes,
+            IEnumerable<(string sku, string name, decimal? price, IDictionary<string, string> variations)> variantData)
         {
             var errors = ValidateInputs(name, description, basePrice);
             if (errors.Any())
                 return Result.Failure<Product>(ErrorResponse.ValidationError(errors));
+
+            // Validate we have at least one variant data
+            var variantDataList = variantData.ToList();
+            if (!variantDataList.Any())
+                return Result.Failure<Product>(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("Variants", "At least one variant is required") }));
 
             var product = new Product
             {
@@ -58,7 +64,8 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             // Add variant types if provided
             if (variantTypes != null)
             {
-                foreach (var type in variantTypes)
+                var variantTypesList = variantTypes.ToList();
+                foreach (var type in variantTypesList)
                 {
                     if (!type.IsActive)
                         return Result.Failure<Product>(ErrorResponse.ValidationError(
@@ -68,10 +75,64 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
                 }
             }
 
-            // Add the default variant
-            product._variants.Add(defaultVariant);
+            // Check for duplicate SKUs in variant data
+            var duplicateSKUs = variantDataList
+                .GroupBy(v => v.sku)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
 
-            product.AddDomainEvent(new ProductCreatedEvent(product.Id, product.Name, defaultVariant.SKU, product.BasePrice));
+            if (duplicateSKUs.Any())
+                return Result.Failure<Product>(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("Variants", 
+                        $"Duplicate SKUs found: {string.Join(", ", duplicateSKUs)}") }));
+
+            // Create and add variants
+            foreach (var data in variantDataList)
+            {
+                var variantResult = ProductVariant.Create(
+                    productId: product.Id,
+                    sku: data.sku,
+                    name: data.name,
+                    price: data.price
+                );
+
+                if (variantResult.IsFailure)
+                    return Result.Failure<Product>(variantResult.Error);
+
+                var variant = variantResult.Value;
+
+                // Add variations if variant types exist
+                if (product._variantTypes.Any())
+                {
+                    // Validate all required variant types are provided
+                    var missingTypes = product._variantTypes
+                        .Select(vt => vt.Name)
+                        .Except(data.variations.Keys)
+                        .ToList();
+
+                    if (missingTypes.Any())
+                        return Result.Failure<Product>(ErrorResponse.ValidationError(
+                            new List<ValidationError> { new("Variant", 
+                                $"Variant with SKU '{data.sku}' is missing options for variant types: {string.Join(", ", missingTypes)}") }));
+
+                    // Add and validate each variation
+                    foreach (var variation in data.variations)
+                    {
+                        var type = product._variantTypes.FirstOrDefault(t => t.Name == variation.Key);
+                        if (!type.Options.Any(o => o.Value == variation.Value))
+                            return Result.Failure<Product>(ErrorResponse.ValidationError(
+                                new List<ValidationError> { new("Variant", 
+                                    $"Option '{variation.Value}' is not valid for variant type '{variation.Key}' in variant with SKU '{data.sku}'") }));
+
+                        variant.SetVariationOption(variation.Key, variation.Value);
+                    }
+                }
+
+                product._variants.Add(variant);
+            }
+
+            product.AddDomainEvent(new ProductCreatedEvent(product.Id, product.Name, variantDataList.First().sku, product.BasePrice));
 
             return Result.Success(product);
         }
@@ -82,7 +143,7 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
                 return Result.Failure(ErrorResponse.ValidationError(
                     new List<ValidationError> { new("VariantType", "Variant type is not active") }));
 
-            if (_variantTypes.Any(t => t.Name == type.Name))
+            if (_variantTypes.Any(t => t.Id == type.Id))
                 return Result.Failure(ErrorResponse.ValidationError(
                     new List<ValidationError> { new("VariantType", "This variant type is already added") }));
 
@@ -90,16 +151,17 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             return Result.Success();
         }
 
-        public Result RemoveVariantType(string typeName)
+        public Result RemoveVariantType(Guid variantTypeId)
         {
-            var type = _variantTypes.FirstOrDefault(t => t.Name == typeName);
+            // Can only remove variant types if there are no variants
+            if (_variants.Any())
+                return Result.Failure(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("VariantType", 
+                        "Cannot remove variant type when product has variants. All variants must maintain all variant types.") }));
+
+            var type = _variantTypes.FirstOrDefault(t => t.Id == variantTypeId);
             if (type == null)
                 return Result.NotFound("Variant type not found");
-
-            // Check if any variants are using this type
-            if (_variants.Any(v => v.HasVariation(typeName)))
-                return Result.Failure(ErrorResponse.ValidationError(
-                    new List<ValidationError> { new("VariantType", "Cannot remove variant type that is in use") }));
 
             _variantTypes.Remove(type);
             return Result.Success();
@@ -107,6 +169,20 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
 
         public Result AddVariant(ProductVariant variant)
         {
+            // If product has variant types, ensure variant provides ALL required options
+            if (_variantTypes.Any())
+            {
+                // Check if variant provides all required variant types
+                var missingTypes = _variantTypes
+                    .Select(vt => vt.Name)
+                    .Except(variant.Variations.Keys)
+                    .ToList();
+
+                if (missingTypes.Any())
+                    return Result.Failure(ErrorResponse.ValidationError(
+                        new List<ValidationError> { new("Variation", $"Missing required variant types: {string.Join(", ", missingTypes)}") }));
+            }
+
             // Validate that all variant's options belong to product's variant types
             foreach (var variation in variant.Variations)
             {

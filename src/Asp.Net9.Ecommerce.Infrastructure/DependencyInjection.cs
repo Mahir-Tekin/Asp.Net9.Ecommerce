@@ -40,6 +40,10 @@ namespace Asp.Net9.Ecommerce.Infrastructure
 
             // Add Repositories
             services.AddScoped<ICategoryRepository, CategoryRepository>();
+            services.AddScoped<IProductRepository, ProductRepository>();
+
+            // Add Unit of Work
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             // Add ApplicationDbInitializer
             services.AddScoped<ApplicationDbInitializer>();
