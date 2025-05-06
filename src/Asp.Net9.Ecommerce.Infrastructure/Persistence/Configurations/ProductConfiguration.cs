@@ -22,6 +22,9 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Configurations
             builder.Property(p => p.BasePrice)
                 .HasPrecision(18, 2)
                 .IsRequired();
+            
+            // Add check constraint for BasePrice
+            builder.ToTable(t => t.HasCheckConstraint("CK_Products_BasePrice", "BasePrice > 0"));
 
             builder.Property(p => p.OldPrice)
                 .HasPrecision(18, 2);
@@ -51,10 +54,12 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Configurations
                 images.ToJson();
             });
 
-            // Indexes
+            // Improved Indexes
             builder.HasIndex(p => p.Name);
             builder.HasIndex(p => p.CategoryId);
             builder.HasIndex(p => p.IsActive);
+            builder.HasIndex(p => p.BasePrice); // Add index for price queries
+            builder.HasIndex(p => new { p.IsActive, p.DeletedAt }); // Composite index for active products
         }
     }
 } 

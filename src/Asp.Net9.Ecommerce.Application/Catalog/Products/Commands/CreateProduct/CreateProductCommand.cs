@@ -5,19 +5,27 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.CreateProduct
 {
     public record CreateProductCommand : IRequest<Result<Guid>>
     {
+        // Basic product information
         public string Name { get; init; }
         public string Description { get; init; }
         public decimal BasePrice { get; init; }
         public Guid CategoryId { get; init; }
 
-        // Default variant information
-        public string DefaultSKU { get; init; }
-        public string DefaultVariantName { get; init; }
-        public int? DefaultStockQuantity { get; init; }
-        public bool TrackInventory { get; init; }
+        // Variants information
+        public List<ProductVariantInfo> Variants { get; init; }
 
         // Optional variant types for the product
         public List<VariantTypeInfo>? VariantTypes { get; init; }
+    }
+
+    public record ProductVariantInfo
+    {
+        public string SKU { get; init; }
+        public string Name { get; init; }
+        public decimal? Price { get; init; }
+        public int StockQuantity { get; init; }
+        public bool TrackInventory { get; init; }
+        public Dictionary<string, string> Variations { get; init; }
     }
 
     public record VariantTypeInfo

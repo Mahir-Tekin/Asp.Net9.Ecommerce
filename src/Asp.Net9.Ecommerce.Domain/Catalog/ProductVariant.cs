@@ -158,6 +158,20 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             return Result.Success();
         }
 
+        public Result UpdateName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return Result.Failure(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("Name", "Name is required") }));
+
+            if (name.Length > 200)
+                return Result.Failure(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("Name", "Name cannot exceed 200 characters") }));
+
+            Name = name.Trim();
+            return Result.Success();
+        }
+
         private static List<ValidationError> ValidateInputs(string sku, string name, decimal? price, int minStockThreshold)
         {
             var errors = new List<ValidationError>();

@@ -20,20 +20,50 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.CreateProduct
             {
                 await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
-                // 1. Validate category exists
-                if (!await _unitOfWork.Categories.ExistsByIdAsync(request.CategoryId, cancellationToken))
+                // 1. Validate category exists and is active
+                var category = await _unitOfWork.Categories.GetByIdAsync(request.CategoryId, cancellationToken);
+                if (category == null)
                 {
                     return Result.NotFound<Guid>("Category not found");
                 }
-
-                // 2. Check if SKU is unique
-                if (await _unitOfWork.Products.ExistsBySKUAsync(request.DefaultSKU, cancellationToken))
+                if (!category.IsActive)
                 {
                     return Result.Failure<Guid>(ErrorResponse.ValidationError(
-                        new List<ValidationError> { new("DefaultSKU", "A product with this SKU already exists") }));
+                        new List<ValidationError> { new("CategoryId", "Category is not active") }));
                 }
 
-                // 3. Create variant types if provided
+                // 2. Validate at least one variant is provided
+                if (request.Variants == null || !request.Variants.Any())
+                {
+                    return Result.Failure<Guid>(ErrorResponse.ValidationError(
+                        new List<ValidationError> { new("Variants", "At least one variant is required") }));
+                }
+
+                // 3. Check for duplicate SKUs
+                var duplicateSKUs = request.Variants
+                    .GroupBy(v => v.SKU)
+                    .Where(g => g.Count() > 1)
+                    .Select(g => g.Key)
+                    .ToList();
+
+                if (duplicateSKUs.Any())
+                {
+                    return Result.Failure<Guid>(ErrorResponse.ValidationError(
+                        new List<ValidationError> { new("Variants", 
+                            $"Duplicate SKUs found: {string.Join(", ", duplicateSKUs)}") }));
+                }
+
+                // 4. Check if any SKU already exists in database
+                foreach (var variant in request.Variants)
+                {
+                    if (await _unitOfWork.Products.ExistsBySKUAsync(variant.SKU, cancellationToken))
+                    {
+                        return Result.Failure<Guid>(ErrorResponse.ValidationError(
+                            new List<ValidationError> { new("SKU", $"A product with SKU '{variant.SKU}' already exists") }));
+                    }
+                }
+
+                // 5. Create variant types if provided
                 var variantTypes = new List<VariationType>();
                 if (request.VariantTypes?.Any() == true)
                 {
@@ -55,39 +85,58 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.CreateProduct
                     }
                 }
 
-                // 4. Create default variant
-                var defaultVariantResult = ProductVariant.Create(
-                    Guid.Empty, // This will be set when the product is created
-                    request.DefaultSKU,
-                    request.DefaultVariantName ?? request.Name,
-                    stockQuantity: request.DefaultStockQuantity ?? 0,
-                    trackInventory: request.TrackInventory);
+                // 6. Create variant data list
+                var variantDataList = request.Variants.Select(v => new Product.VariantData
+                {
+                    SKU = v.SKU,
+                    Name = v.Name,
+                    Price = v.Price,
+                    Variations = v.Variations ?? new Dictionary<string, string>()
+                }).ToList();
 
-                if (defaultVariantResult.IsFailure)
-                    return Result.Failure<Guid>(defaultVariantResult.Error);
-
-                // 5. Create product
+                // 7. Create product
                 var productResult = Product.Create(
                     request.Name,
                     request.Description,
                     request.BasePrice,
                     request.CategoryId,
-                    defaultVariantResult.Value,
-                    variantTypes);
+                    variantTypes,
+                    variantDataList);
 
                 if (productResult.IsFailure)
                     return Result.Failure<Guid>(productResult.Error);
 
-                // 6. Save to database
-                _unitOfWork.Products.Add(productResult.Value);
+                var product = productResult.Value;
+
+                // 8. Set inventory for variants
+                foreach (var variant in product.Variants.Zip(request.Variants, (v, info) => (Variant: v, Info: info)))
+                {
+                    if (variant.Info.TrackInventory)
+                    {
+                        var updateStockResult = variant.Variant.UpdateStock(variant.Info.StockQuantity);
+                        if (updateStockResult.IsFailure)
+                            return Result.Failure<Guid>(updateStockResult.Error);
+                    }
+                }
+
+                // 9. Save to database
+                var addResult = await _unitOfWork.Products.AddAsync(product, cancellationToken);
+                if (addResult.IsFailure)
+                {
+                    await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                    return Result.Failure<Guid>(addResult.Error);
+                }
+
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
-                return Result.Success(productResult.Value.Id);
+                return Result.Success(product.Id);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-                throw;
+                return Result.Failure<Guid>(ErrorResponse.General(
+                    $"An error occurred while creating the product: {ex.Message}",
+                    "PRODUCT_CREATION_ERROR"));
             }
         }
     }
