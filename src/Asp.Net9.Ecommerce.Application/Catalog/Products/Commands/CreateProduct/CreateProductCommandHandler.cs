@@ -23,76 +23,77 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.CreateProduct
                 // 1. Validate category exists and is active
                 var category = await _unitOfWork.Categories.GetByIdAsync(request.CategoryId, cancellationToken);
                 if (category == null)
-                {
                     return Result.NotFound<Guid>("Category not found");
-                }
                 if (!category.IsActive)
-                {
-                    return Result.Failure<Guid>(ErrorResponse.ValidationError(
-                        new List<ValidationError> { new("CategoryId", "Category is not active") }));
-                }
+                    return Result.Failure<Guid>(ErrorResponse.ValidationError(new List<ValidationError> { new("CategoryId", "Category is not active") }));
 
                 // 2. Validate at least one variant is provided
                 if (request.Variants == null || !request.Variants.Any())
-                {
-                    return Result.Failure<Guid>(ErrorResponse.ValidationError(
-                        new List<ValidationError> { new("Variants", "At least one variant is required") }));
-                }
+                    return Result.Failure<Guid>(ErrorResponse.ValidationError(new List<ValidationError> { new("Variants", "At least one variant is required") }));
 
                 // 3. Check for duplicate SKUs
-                var duplicateSKUs = request.Variants
-                    .GroupBy(v => v.SKU)
-                    .Where(g => g.Count() > 1)
-                    .Select(g => g.Key)
-                    .ToList();
-
+                var duplicateSKUs = request.Variants.GroupBy(v => v.SKU).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
                 if (duplicateSKUs.Any())
-                {
-                    return Result.Failure<Guid>(ErrorResponse.ValidationError(
-                        new List<ValidationError> { new("Variants", 
-                            $"Duplicate SKUs found: {string.Join(", ", duplicateSKUs)}") }));
-                }
+                    return Result.Failure<Guid>(ErrorResponse.ValidationError(new List<ValidationError> { new("Variants", $"Duplicate SKUs found: {string.Join(", ", duplicateSKUs)}") }));
 
                 // 4. Check if any SKU already exists in database
                 foreach (var variant in request.Variants)
                 {
                     if (await _unitOfWork.Products.ExistsBySKUAsync(variant.SKU, cancellationToken))
-                    {
-                        return Result.Failure<Guid>(ErrorResponse.ValidationError(
-                            new List<ValidationError> { new("SKU", $"A product with SKU '{variant.SKU}' already exists") }));
-                    }
+                        return Result.Failure<Guid>(ErrorResponse.ValidationError(new List<ValidationError> { new("SKU", $"A product with SKU '{variant.SKU}' already exists") }));
                 }
 
-                // 5. Create variant types if provided
+                // 5. Load variant types and options by ID
                 var variantTypes = new List<VariationType>();
-                if (request.VariantTypes?.Any() == true)
+                var variantTypeDict = new Dictionary<Guid, VariationType>();
+                if (request.VariantTypeIds != null && request.VariantTypeIds.Any())
                 {
-                    foreach (var typeInfo in request.VariantTypes)
+                    foreach (var typeId in request.VariantTypeIds)
                     {
-                        var typeResult = VariationType.Create(typeInfo.Name, typeInfo.DisplayName);
-                        if (typeResult.IsFailure)
-                            return Result.Failure<Guid>(typeResult.Error);
-
-                        var type = typeResult.Value;
-                        foreach (var optionInfo in typeInfo.Options)
-                        {
-                            var addOptionResult = type.AddOption(optionInfo.Value, optionInfo.DisplayValue);
-                            if (addOptionResult.IsFailure)
-                                return Result.Failure<Guid>(addOptionResult.Error);
-                        }
-
+                        var type = await _unitOfWork.VariationTypes.GetByIdWithOptionsAsync(typeId, cancellationToken);
+                        if (type == null)
+                            return Result.Failure<Guid>(ErrorResponse.ValidationError(new List<ValidationError> { new("VariantTypeId", $"Variant type with ID '{typeId}' not found") }));
+                        if (!type.IsActive)
+                            return Result.Failure<Guid>(ErrorResponse.ValidationError(new List<ValidationError> { new("VariantTypeId", $"Variant type with ID '{typeId}' is not active") }));
                         variantTypes.Add(type);
+                        variantTypeDict[typeId] = type;
                     }
                 }
 
-                // 6. Create variant data list
-                var variantDataList = request.Variants.Select(v => new Product.VariantData
+                // 6. Validate and build variant data list
+                var variantDataList = new List<Product.VariantData>();
+                foreach (var v in request.Variants)
                 {
-                    SKU = v.SKU,
-                    Name = v.Name,
-                    Price = v.Price,
-                    Variations = v.Variations ?? new Dictionary<string, string>()
-                }).ToList();
+                    // Validate SelectedOptions
+                    if (variantTypes.Any())
+                    {
+                        // Must have all required variant types
+                        var missingTypes = variantTypes.Select(t => t.Id).Except(v.SelectedOptions.Keys).ToList();
+                        if (missingTypes.Any())
+                        {
+                            return Result.Failure<Guid>(ErrorResponse.ValidationError(new List<ValidationError> {
+                                new("SelectedOptions", $"Variant '{v.SKU}' is missing options for types: {string.Join(", ", missingTypes)}")
+                            }));
+                        }
+                        // Validate all option IDs
+                        foreach (var (typeId, optionId) in v.SelectedOptions)
+                        {
+                            if (!variantTypeDict.TryGetValue(typeId, out var type))
+                                return Result.Failure<Guid>(ErrorResponse.ValidationError(new List<ValidationError> { new("SelectedOptions", $"Variant '{v.SKU}' references unknown variant type ID '{typeId}'") }));
+                            if (!type.Options.Any(o => o.Id == optionId))
+                                return Result.Failure<Guid>(ErrorResponse.ValidationError(new List<ValidationError> { new("SelectedOptions", $"Variant '{v.SKU}' references invalid option ID '{optionId}' for type '{type.Name}'") }));
+                        }
+                    }
+                    variantDataList.Add(new Product.VariantData
+                    {
+                        SKU = v.SKU,
+                        Name = v.Name,
+                        Price = v.Price,
+                        SelectedOptions = v.SelectedOptions ?? new Dictionary<Guid, Guid>()
+                    });
+                }
+
+                
 
                 // 7. Create product
                 var productResult = Product.Create(
@@ -101,7 +102,14 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.CreateProduct
                     request.BasePrice,
                     request.CategoryId,
                     variantTypes,
-                    variantDataList);
+                    variantDataList,
+                    request.Images?.Select(img => new Product.ImageData
+                    {
+                        Url = img.Url,
+                        AltText = img.AltText,
+                        IsMain = img.IsMain
+                    }).ToList()
+                );
 
                 if (productResult.IsFailure)
                     return Result.Failure<Guid>(productResult.Error);

@@ -26,6 +26,8 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Configurations
             builder.Property("_price")
                 .HasColumnName("Price")
                 .HasPrecision(18, 2);
+            builder.Property(v => v.OldPrice)
+                .HasPrecision(18, 2);
 
             // Add check constraint for Price
             builder.ToTable(t => t.HasCheckConstraint("CK_ProductVariants_Price", "Price IS NULL OR Price > 0"));
@@ -50,24 +52,12 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Configurations
             builder.Property(v => v.TrackInventory)
                 .IsRequired();
 
-            // Store variations as JSON with proper value converter and comparer
-            var jsonOptions = new JsonSerializerOptions();
-            var converter = new ValueConverter<Dictionary<string, string>, string>(
-                v => JsonSerializer.Serialize(v, jsonOptions),
-                v => JsonSerializer.Deserialize<Dictionary<string, string>>(v, jsonOptions) ?? new Dictionary<string, string>()
-            );
 
-            var comparer = new ValueComparer<Dictionary<string, string>>(
-                (d1, d2) => d1.SequenceEqual(d2),
-                d => d.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
-                d => new Dictionary<string, string>(d)
-            );
-
-            builder.Property("_variations")
-                .HasColumnName("Variations")
-                .HasColumnType("nvarchar(max)")
-                .HasConversion(converter)
-                .Metadata.SetValueComparer(comparer);
+            // Many-to-many: ProductVariant <-> VariantOption
+            builder
+                .HasMany(v => v.SelectedOptions)
+                .WithMany()
+                .UsingEntity(j => j.ToTable("ProductVariantOptions"));
 
             // Improved Indexes
             builder.HasIndex(v => v.SKU).IsUnique().HasFilter("DeletedAt IS NULL"); // Unique SKU only for active records

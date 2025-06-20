@@ -79,29 +79,30 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.UpdateProduct
                     // Update variations
                     if (variantInfo.Variations != null)
                     {
-                        // Remove old variations
-                        var currentVariations = variant.GetVariations();
-                        foreach (var oldVariation in currentVariations)
-                        {
-                            if (!variantInfo.Variations.ContainsKey(oldVariation.Key))
-                            {
-                                var removeResult = variant.RemoveVariation(oldVariation.Key);
-                                if (removeResult.IsFailure)
-                                    return removeResult;
-                            }
-                        }
-
-                        // Add or update new variations
-                        foreach (var newVariation in variantInfo.Variations)
-                        {
-                            if (!currentVariations.TryGetValue(newVariation.Key, out var currentValue) || 
-                                currentValue != newVariation.Value)
-                            {
-                                var addResult = variant.AddVariation(newVariation.Key, newVariation.Value);
-                                if (addResult.IsFailure)
-                                    return addResult;
-                            }
-                        }
+                        // TODO: Refactor for new normalized variant/option structure
+                        // Commented out legacy variation update logic to prevent errors
+                        // var currentVariations = variant.GetVariations();
+                        // foreach (var oldVariation in currentVariations)
+                        // {
+                        //     if (!variantInfo.Variations.ContainsKey(oldVariation.Key))
+                        //     {
+                        //         var removeResult = variant.RemoveVariation(oldVariation.Key);
+                        //         if (removeResult.IsFailure)
+                        //             return removeResult;
+                        //     }
+                        // }
+                        //
+                        // // Add or update new variations
+                        // foreach (var newVariation in variantInfo.Variations)
+                        // {
+                        //     if (!currentVariations.TryGetValue(newVariation.Key, out var currentValue) || 
+                        //         currentValue != newVariation.Value)
+                        //     {
+                        //         var addResult = variant.AddVariation(newVariation.Key, newVariation.Value);
+                        //         if (addResult.IsFailure)
+                        //             return addResult;
+                        //     }
+                        // }
                     }
                 }
 

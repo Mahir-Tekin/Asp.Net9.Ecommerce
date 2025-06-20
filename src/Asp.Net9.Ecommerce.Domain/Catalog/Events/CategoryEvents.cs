@@ -42,4 +42,17 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog.Events
             CategoryId = categoryId;
         }
     }
+
+    public record CategoryVariationTypesUpdatedEvent : IDomainEvent
+    {
+        public Guid CategoryId { get; }
+        public List<Guid> VariationTypeIds { get; }
+        public DateTime OccurredOn { get; } = DateTime.UtcNow;
+
+        public CategoryVariationTypesUpdatedEvent(Guid categoryId, List<Guid> variationTypeIds)
+        {
+            CategoryId = categoryId;
+            VariationTypeIds = variationTypeIds;
+        }
+    }
 } 

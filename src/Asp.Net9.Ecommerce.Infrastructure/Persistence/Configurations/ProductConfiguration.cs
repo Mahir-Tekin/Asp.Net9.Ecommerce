@@ -26,8 +26,6 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Configurations
             // Add check constraint for BasePrice
             builder.ToTable(t => t.HasCheckConstraint("CK_Products_BasePrice", "BasePrice > 0"));
 
-            builder.Property(p => p.OldPrice)
-                .HasPrecision(18, 2);
 
             // Status
             builder.Property(p => p.IsActive)
@@ -45,14 +43,15 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Configurations
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasMany(p => p.VariantTypes)
-                .WithMany()
-                .UsingEntity(j => j.ToTable("ProductVariantTypes"));
 
-            // Store images as JSON
-            builder.OwnsMany(p => p.Images, images =>
-            {
-                images.ToJson();
-            });
+            .WithMany()
+            .UsingEntity(j => j.ToTable("ProductVariantTypes"));
+
+            // Configure one-to-many relationship for ProductImage entity
+            builder.HasMany(p => p.Images)
+                .WithOne(i => i.Product)
+                .HasForeignKey(i => i.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // Improved Indexes
             builder.HasIndex(p => p.Name);

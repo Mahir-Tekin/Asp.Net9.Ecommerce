@@ -1,3 +1,4 @@
+using Asp.Net9.Ecommerce.Application.Catalog.Categories.DTOs;
 using FluentValidation;
 
 namespace Asp.Net9.Ecommerce.Application.Catalog.Categories.Commands.CreateCategory
@@ -19,6 +20,18 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Categories.Commands.CreateCateg
                 .MaximumLength(200).WithMessage("Slug must not exceed 200 characters")
                 .Matches("^[a-z0-9]+(?:-[a-z0-9]+)*$")
                 .WithMessage("Slug must be in valid format (lowercase letters, numbers, and hyphens only)");
+
+            RuleForEach(x => x.VariationTypes)
+                .SetValidator(new CategoryVariationTypeInfoValidator());
+        }
+    }
+
+    public class CategoryVariationTypeInfoValidator : AbstractValidator<CategoryVariationTypeInfo>
+    {
+        public CategoryVariationTypeInfoValidator()
+        {
+            RuleFor(x => x.VariationTypeId)
+                .NotEmpty().WithMessage("Variation type ID is required");
         }
     }
 } 

@@ -7,13 +7,12 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
     public class Product : AggregateRoot
     {
         // Basic Information
-        public string Name { get; private set; }
-        public string Description { get; private set; }
+        public string? Name { get; private set; }
+        public string? Description { get; private set; }
         public Guid CategoryId { get; private set; }
 
         // Pricing
         public decimal BasePrice { get; private set; }
-        public decimal? OldPrice { get; private set; }
 
         // Images
         private readonly List<ProductImage> _images = new();
@@ -28,62 +27,126 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
         public bool IsActive { get; private set; }
 
         // Navigation properties
-        public Category Category { get; private set; }
+        public Category? Category { get; private set; }
         private readonly List<ProductVariant> _variants = new();
         public IReadOnlyCollection<ProductVariant> Variants => _variants.AsReadOnly();
 
         protected Product() { } // For EF Core
 
+
+
+        /// <summary>
+        /// Data structure for holding variant information before creating ProductVariant entities.
+        /// Used as input to the Product.Create factory method.
+        /// </summary>
         public record VariantData
         {
-            public string SKU { get; init; }
-            public string Name { get; init; }
+            /// <summary>SKU for the variant (must be unique per product)</summary>
+            public string SKU { get; init; } = string.Empty;
+            /// <summary>Name of the variant</summary>
+            public string Name { get; init; } = string.Empty;
+            /// <summary>Optional price override for the variant</summary>
             public decimal? Price { get; init; }
-            public IDictionary<string, string> Variations { get; init; }
+            /// <summary>
+            /// Selected options for this variant. Key: VariationTypeId, Value: VariantOptionId.
+            /// </summary>
+            public IDictionary<Guid, Guid> SelectedOptions { get; init; } = new Dictionary<Guid, Guid>();
         }
 
+        /// <summary>
+        /// Data structure for holding image information before creating ProductImage entities.
+        /// Used as input to the Product.Create factory method.
+        /// </summary>
+        public record ImageData
+        {
+            public string Url { get; init; } = string.Empty;
+            public string? AltText { get; init; }
+            public bool IsMain { get; init; }
+        }
+
+
+        /// <summary>
+        /// Factory method to create a new Product aggregate with variants, images, and variant types.
+        /// Handles all domain validation and construction of child entities.
+        /// </summary>
+        /// <param name="name">Product name</param>
+        /// <param name="description">Product description</param>
+        /// <param name="basePrice">Base price for the product</param>
+        /// <param name="categoryId">Category ID (foreign key)</param>
+        /// <param name="variantTypes">List of VariationType entities (must be loaded by handler)</param>
+        /// <param name="variantData">List of VariantData (raw variant info from handler/DTO)</param>
+        /// <param name="images">Optional images for the product</param>
+        /// <returns>Result containing the created Product or validation errors</returns>
         public static Result<Product> Create(
             string name,
             string description,
             decimal basePrice,
             Guid categoryId,
             IEnumerable<VariationType>? variantTypes,
-            IEnumerable<VariantData> variantData)
+            IEnumerable<VariantData> variantData,
+            IEnumerable<ImageData>? images = null)
         {
+            // 1. Validate basic product info
             var errors = ValidateInputs(name, description, basePrice);
             if (errors.Any())
                 return Result.Failure<Product>(ErrorResponse.ValidationError(errors));
 
-            // Validate we have at least one variant data
+            // 2. Validate at least one variant is provided
             var variantDataList = variantData.ToList();
             if (!variantDataList.Any())
                 return Result.Failure<Product>(ErrorResponse.ValidationError(
                     new List<ValidationError> { new("Variants", "At least one variant is required") }));
 
+            // 3. Create the Product entity (aggregate root)
             var product = new Product
             {
                 Name = name.Trim(),
-                Description = description?.Trim(),
+                Description = description!.Trim(),
                 BasePrice = basePrice,
                 CategoryId = categoryId,
                 IsActive = true
             };
 
-            // Add variant types if provided
+
+            // 4. Add images (if provided)
+            if (images != null && images.Any())
+            {
+                int mainCount = images.Count(i => i.IsMain);
+                if (mainCount > 1)
+                {
+                    return Result.Failure<Product>(ErrorResponse.ValidationError(
+                        new List<ValidationError> { new("Images", "Only one image can be marked as main.") }));
+                }
+                foreach (var img in images)
+                {
+                    var imgResult = ProductImage.Create(img.Url, img.AltText, img.IsMain);
+                    if (imgResult.IsFailure)
+                        return Result.Failure<Product>(imgResult.Error);
+                    product._images.Add(imgResult.Value);
+                }
+            }
+
+
+            // 5. Add variant types (must be loaded entities)
+            // Handler should load VariationType entities from DB and pass them in.
+            // This ensures we can validate their state and use their options for variant validation.
             if (variantTypes != null)
             {
                 var variantTypesList = variantTypes.ToList();
                 foreach (var type in variantTypesList)
                 {
+                    // Validate that the variant type is active (business rule)
                     if (!type.IsActive)
                         return Result.Failure<Product>(ErrorResponse.ValidationError(
                             new List<ValidationError> { new("VariantType", $"Variant type {type.Name} is not active") }));
 
+                    // Add the variant type to the product's collection
                     product._variantTypes.Add(type);
                 }
             }
 
-            // Check for duplicate SKUs in variant data
+
+            // 6. Check for duplicate SKUs in variant data
             var duplicateSKUs = variantDataList
                 .GroupBy(v => v.SKU)
                 .Where(g => g.Count() > 1)
@@ -95,53 +158,43 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
                     new List<ValidationError> { new("Variants", 
                         $"Duplicate SKUs found: {string.Join(", ", duplicateSKUs)}") }));
 
-            // Create and add variants
+            // 7. Create and add ProductVariant entities for each variant
             foreach (var data in variantDataList)
             {
+                // Validate all required variant types are provided in this variant
+                if (product._variantTypes.Any())
+                {
+                    var missingTypes = product._variantTypes
+                        .Select(vt => vt.Id)
+                        .Except(data.SelectedOptions.Keys)
+                        .ToList();
+
+                    if (missingTypes.Any())
+                        return Result.Failure<Product>(ErrorResponse.ValidationError(
+                            new List<ValidationError> { new("Variant",
+                                $"Variant with SKU '{data.SKU}' is missing options for variant types: {string.Join(", ", missingTypes)}") }));
+                }
+
+                // Create the ProductVariant entity with selected options and variant types
                 var variantResult = ProductVariant.Create(
                     productId: product.Id,
                     sku: data.SKU,
                     name: data.Name,
-                    price: data.Price
+                    price: data.Price,
+                    variantTypes: product._variantTypes,
+                    selectedOptions: data.SelectedOptions
                 );
 
                 if (variantResult.IsFailure)
                     return Result.Failure<Product>(variantResult.Error);
 
-                var variant = variantResult.Value;
-
-                // Add variations if variant types exist
-                if (product._variantTypes.Any())
-                {
-                    // Validate all required variant types are provided
-                    var missingTypes = product._variantTypes
-                        .Select(vt => vt.Name)
-                        .Except(data.Variations.Keys)
-                        .ToList();
-
-                    if (missingTypes.Any())
-                        return Result.Failure<Product>(ErrorResponse.ValidationError(
-                            new List<ValidationError> { new("Variant", 
-                                $"Variant with SKU '{data.SKU}' is missing options for variant types: {string.Join(", ", missingTypes)}") }));
-
-                    // Add and validate each variation
-                    foreach (var variation in data.Variations)
-                    {
-                        var type = product._variantTypes.FirstOrDefault(t => t.Name == variation.Key);
-                        if (!type.Options.Any(o => o.Value == variation.Value))
-                            return Result.Failure<Product>(ErrorResponse.ValidationError(
-                                new List<ValidationError> { new("Variant", 
-                                    $"Option '{variation.Value}' is not valid for variant type '{variation.Key}' in variant with SKU '{data.SKU}'") }));
-
-                        variant.AddVariation(variation.Key, variation.Value);
-                    }
-                }
-
-                product._variants.Add(variant);
+                product._variants.Add(variantResult.Value);
             }
 
+            // 9. Add domain event for product creation
             product.AddDomainEvent(new ProductCreatedEvent(product.Id, product.Name, variantDataList.First().SKU, product.BasePrice));
 
+            // 10. Return the created product
             return Result.Success(product);
         }
 
@@ -175,46 +228,6 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             return Result.Success();
         }
 
-        public Result AddVariant(ProductVariant variant)
-        {
-            // If product has variant types, ensure variant provides ALL required options
-            if (_variantTypes.Any())
-            {
-                // Check if variant provides all required variant types
-                var missingTypes = _variantTypes
-                    .Select(vt => vt.Name)
-                    .Except(variant.GetVariations().Keys)
-                    .ToList();
-
-                if (missingTypes.Any())
-                    return Result.Failure(ErrorResponse.ValidationError(
-                        new List<ValidationError> { new("Variation", $"Missing required variant types: {string.Join(", ", missingTypes)}") }));
-            }
-
-            // Validate that all variant's options belong to product's variant types
-            foreach (var variation in variant.GetVariations())
-            {
-                var type = _variantTypes.FirstOrDefault(t => t.Name == variation.Key);
-                if (type == null)
-                    return Result.Failure(ErrorResponse.ValidationError(
-                        new List<ValidationError> { new("Variation", $"Variant type {variation.Key} is not defined for this product") }));
-
-                if (!type.Options.Any(o => o.Value == variation.Value))
-                    return Result.Failure(ErrorResponse.ValidationError(
-                        new List<ValidationError> { new("Variation", $"Option {variation.Value} is not valid for variant type {variation.Key}") }));
-            }
-
-            // Check for duplicate SKU
-            if (_variants.Any(v => v.SKU == variant.SKU))
-            {
-                return Result.Failure(ErrorResponse.ValidationError(
-                    new List<ValidationError> { new("SKU", "A variant with this SKU already exists") }));
-            }
-            
-            _variants.Add(variant);
-            return Result.Success();
-        }
-
         public Result Update(string name, string description)
         {
             var errors = ValidateInputs(name, description, BasePrice);
@@ -235,10 +248,9 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
                 return Result.Failure(ErrorResponse.ValidationError(
                     new List<ValidationError> { new("BasePrice", "Price must be greater than zero") }));
 
-            var oldPrice = BasePrice;
-            OldPrice = oldPrice;
-            BasePrice = newBasePrice;
 
+            var oldPrice = BasePrice;
+            BasePrice = newBasePrice;
             AddDomainEvent(new ProductPriceChangedEvent(Id, oldPrice, newBasePrice));
 
             return Result.Success();
@@ -276,23 +288,26 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
                     new List<ValidationError> { new("Url", "Image URL is required") }));
 
             // If this is the first image, make it main
-            if (!_images.Any()) 
+            if (!_images.Any())
                 isMain = true;
 
-            // If this is marked as main, unmark other images
-            if (isMain)
+            // Enforce only one main image
+            if (isMain && _images.Any(i => i.IsMain))
             {
-                foreach (var existingImage in _images.Where(i => i.IsMain))
-                {
-                    existingImage.UnsetMain();
-                }
+                return Result.Failure(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("Images", "Only one image can be marked as main.") }));
             }
 
-            var imageResult = ProductImage.Create(url, altText, isMain);
+            var imageResult = ProductImage.Create(url, altText, isMain, this.Id);
             if (imageResult.IsFailure)
                 return Result.Failure(imageResult.Error);
 
-            _images.Add(imageResult.Value);
+            var image = imageResult.Value;
+            // Set Product navigation and ProductId
+            typeof(ProductImage).GetProperty("Product")?.SetValue(image, this);
+            typeof(ProductImage).GetProperty("ProductId")?.SetValue(image, this.Id);
+
+            _images.Add(image);
 
             return Result.Success();
         }

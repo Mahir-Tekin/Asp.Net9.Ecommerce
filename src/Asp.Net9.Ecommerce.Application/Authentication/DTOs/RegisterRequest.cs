@@ -24,15 +24,15 @@ namespace Asp.Net9.Ecommerce.Application.Authentication.DTOs
         public string ConfirmPassword { get; init; }
 
         /// <summary>
-        /// User's first name
+        /// User's first name (optional)
         /// </summary>
         /// <example>John</example>
-        public string FirstName { get; init; }
+        public string? FirstName { get; init; }
 
         /// <summary>
-        /// User's last name
+        /// User's last name (optional)
         /// </summary>
         /// <example>Doe</example>
-        public string LastName { get; init; }
+        public string? LastName { get; init; }
     }
 } 

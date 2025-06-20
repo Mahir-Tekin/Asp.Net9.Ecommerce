@@ -26,28 +26,12 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.CreateProduct
                 .NotEmpty().WithMessage("At least one variant is required")
                 .ForEach(variant => variant.SetValidator(new ProductVariantInfoValidator()));
 
-            // Variant types validation
-            When(x => x.VariantTypes != null && x.VariantTypes.Any(), () =>
+            // Images validation
+            When(x => x.Images != null && x.Images.Any(), () =>
             {
-                RuleFor(x => x.VariantTypes)
-                    .ForEach(type => type.SetValidator(new VariantTypeInfoValidator()));
-
-                // If variant types are provided, ensure all variants have the required variations
-                RuleForEach(x => x.Variants)
-                    .Must((command, variant) => HasRequiredVariations(variant, command.VariantTypes))
-                    .WithMessage((command, variant) => 
-                        $"Variant with SKU '{variant.SKU}' is missing required variations for the specified variant types");
+                RuleForEach(x => x.Images)
+                    .SetValidator(new ProductImageInfoValidator());
             });
-        }
-
-        private bool HasRequiredVariations(ProductVariantInfo variant, List<VariantTypeInfo> variantTypes)
-        {
-            if (variant.Variations == null)
-                return false;
-
-            return variantTypes.All(type => 
-                variant.Variations.ContainsKey(type.Name) && 
-                !string.IsNullOrWhiteSpace(variant.Variations[type.Name]));
         }
     }
 
@@ -72,45 +56,20 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.CreateProduct
                 .GreaterThanOrEqualTo(0).WithMessage("Stock quantity cannot be negative")
                 .When(x => x.TrackInventory);
 
-            RuleFor(x => x.Variations)
-                .NotNull().WithMessage("Variations dictionary cannot be null");
+            RuleFor(x => x.SelectedOptions)
+                .NotNull().WithMessage("SelectedOptions dictionary cannot be null");
         }
     }
 
-    public class VariantTypeInfoValidator : AbstractValidator<VariantTypeInfo>
+    public class ProductImageInfoValidator : AbstractValidator<ProductImageInfo>
     {
-        public VariantTypeInfoValidator()
+        public ProductImageInfoValidator()
         {
-            RuleFor(x => x.Name)
-                .NotEmpty().WithMessage("Variant type name is required")
-                .MaximumLength(50).WithMessage("Variant type name cannot exceed 50 characters")
-                .Matches("^[a-z0-9-]+$").WithMessage("Variant type name must be lowercase and can only contain letters, numbers, and hyphens");
-
-            RuleFor(x => x.DisplayName)
-                .NotEmpty().WithMessage("Display name is required")
-                .MaximumLength(100).WithMessage("Display name cannot exceed 100 characters");
-
-            RuleFor(x => x.Options)
-                .NotEmpty().WithMessage("At least one option is required")
-                .ForEach(option => option.SetValidator(new VariantOptionInfoValidator()));
+            RuleFor(x => x.Url)
+                .NotEmpty().WithMessage("Image URL is required");
+            RuleFor(x => x.AltText)
+                .MaximumLength(200).WithMessage("Alt text cannot exceed 200 characters");
         }
     }
 
-    public class VariantOptionInfoValidator : AbstractValidator<VariantOptionInfo>
-    {
-        public VariantOptionInfoValidator()
-        {
-            RuleFor(x => x.Value)
-                .NotEmpty().WithMessage("Option value is required")
-                .MaximumLength(50).WithMessage("Option value cannot exceed 50 characters")
-                .Matches("^[a-z0-9-]+$").WithMessage("Option value must be lowercase and can only contain letters, numbers, and hyphens");
-
-            RuleFor(x => x.DisplayValue)
-                .NotEmpty().WithMessage("Display value is required")
-                .MaximumLength(100).WithMessage("Display value cannot exceed 100 characters");
-
-            RuleFor(x => x.SortOrder)
-                .GreaterThanOrEqualTo(0).WithMessage("Sort order cannot be negative");
-        }
-    }
 } 

@@ -30,6 +30,12 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Configurations
                 .HasForeignKey(c => c.ParentCategoryId)
                 .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete
 
+            // Store variation types as JSON
+            builder.OwnsMany(c => c.VariationTypes, variationTypes =>
+            {
+                variationTypes.ToJson();
+            });
+
             // Indexes
             builder.HasIndex(c => c.ParentCategoryId);
             builder.HasIndex(c => c.Name);

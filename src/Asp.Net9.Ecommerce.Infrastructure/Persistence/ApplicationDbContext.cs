@@ -10,6 +10,7 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence
         public DbSet<Product> Products { get; set; }
         public DbSet<ProductVariant> ProductVariants { get; set; }
         public DbSet<VariationType> VariationTypes { get; set; }
+        public DbSet<VariantOption> VariantOptions { get; set; }
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)

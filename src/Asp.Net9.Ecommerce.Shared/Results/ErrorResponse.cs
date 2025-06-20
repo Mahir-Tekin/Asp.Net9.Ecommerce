@@ -54,5 +54,10 @@ namespace Asp.Net9.Ecommerce.Shared.Results
         {
             return new ErrorResponse(message, "CONFLICT", ErrorType.Conflict);
         }
+
+        public static ErrorResponse Internal(string message = "An internal error occurred")
+        {
+            return new ErrorResponse(message, "INTERNAL_ERROR", ErrorType.Internal);
+        }
     }
 } 

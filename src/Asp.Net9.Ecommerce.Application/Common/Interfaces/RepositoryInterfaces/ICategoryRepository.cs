@@ -10,6 +10,7 @@ namespace Asp.Net9.Ecommerce.Application.Common.Interfaces.RepositoryInterfaces
         Task<bool> ExistsByIdAsync(Guid id, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<Category>> GetAllAsync(CancellationToken cancellationToken = default);
         Task<IReadOnlyList<Category>> GetCategoryTreeAsync(CancellationToken cancellationToken = default);
+        Task<Category> GetCategoryByIdAsync(Guid id, CancellationToken cancellationToken = default);
         void Add(Category category);
         void Update(Category category);
         void Delete(Category category);

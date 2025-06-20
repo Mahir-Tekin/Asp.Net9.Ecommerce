@@ -3,11 +3,14 @@ using Asp.Net9.Ecommerce.Shared.Results;
 
 namespace Asp.Net9.Ecommerce.Domain.Catalog
 {
-    public class VariantOption : ValueObject
+    public class VariantOption : BaseEntity
     {
         public string Value { get; private set; }
         public string DisplayValue { get; private set; }
         public int SortOrder { get; private set; }
+
+        public Guid VariationTypeId { get; internal set; }
+        public VariationType VariationType { get; private set; }
 
         private VariantOption(string value, string displayValue, int sortOrder = 0)
         {
@@ -16,13 +19,19 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             SortOrder = sortOrder;
         }
 
-        public static Result<VariantOption> Create(string value, string displayValue, int sortOrder = 0)
+        protected VariantOption() { } // For EF Core
+
+        public static Result<VariantOption> Create(string value, string displayValue, int sortOrder = 0, Guid? variationTypeId = null)
         {
             var errors = ValidateInputs(value, displayValue);
             if (errors.Any())
                 return Result.Failure<VariantOption>(ErrorResponse.ValidationError(errors));
 
-            return Result.Success(new VariantOption(value, displayValue, sortOrder));
+            var option = new VariantOption(value, displayValue, sortOrder);
+            if (variationTypeId.HasValue)
+                option.VariationTypeId = variationTypeId.Value;
+
+            return Result.Success(option);
         }
 
         private static List<ValidationError> ValidateInputs(string value, string displayValue)
@@ -41,12 +50,5 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
 
             return errors;
         }
-
-        protected override IEnumerable<object> GetEqualityComponents()
-        {
-            yield return Value;
-            yield return DisplayValue;
-            yield return SortOrder;
-        }
     }
-} 
+}

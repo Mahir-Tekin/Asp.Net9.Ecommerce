@@ -9,8 +9,7 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
         public string DisplayName { get; private set; }
         public bool IsActive { get; private set; }
 
-        private readonly List<VariantOption> _options = new();
-        public IReadOnlyCollection<VariantOption> Options => _options.AsReadOnly();
+        public ICollection<VariantOption> Options { get; private set; } = new List<VariantOption>();
 
         protected VariationType() { } // For EF Core
 
@@ -46,7 +45,7 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             return Result.Success();
         }
 
-        public Result AddOption(string value, string displayValue)
+        public Result AddOption(string value, string displayValue, int sortOrder = 0)
         {
             if (string.IsNullOrWhiteSpace(value))
                 return Result.Failure(ErrorResponse.ValidationError(
@@ -56,25 +55,30 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
                 return Result.Failure(ErrorResponse.ValidationError(
                     new List<ValidationError> { new("DisplayValue", "Option display value is required") }));
 
-            if (_options.Any(o => o.Value == value.Trim().ToLowerInvariant()))
+            if (Options.Any(o => o.Value == value.Trim().ToLowerInvariant()))
                 return Result.Failure(ErrorResponse.ValidationError(
                     new List<ValidationError> { new("Value", "This option value already exists") }));
 
-            var optionResult = VariantOption.Create(value, displayValue);
+            // Ensure VariationType has an Id before adding options
+            if (this.Id == Guid.Empty)
+                return Result.Failure(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("VariationTypeId", "VariationType must have a valid Id before adding options.") }));
+
+            var optionResult = VariantOption.Create(value, displayValue, sortOrder, this.Id);
             if (optionResult.IsFailure)
                 return Result.Failure(optionResult.Error);
 
-            _options.Add(optionResult.Value);
+            Options.Add(optionResult.Value);
             return Result.Success();
         }
 
         public Result RemoveOption(string value)
         {
-            var option = _options.FirstOrDefault(o => o.Value == value.Trim().ToLowerInvariant());
+            var option = Options.FirstOrDefault(o => o.Value == value.Trim().ToLowerInvariant());
             if (option == null)
                 return Result.NotFound("Option not found");
 
-            _options.Remove(option);
+            Options.Remove(option);
             return Result.Success();
         }
 

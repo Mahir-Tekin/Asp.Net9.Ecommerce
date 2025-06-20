@@ -1,3 +1,4 @@
+
 using Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.CreateProduct;
 using Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.UpdateProduct;
 using Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.DeleteProduct;
@@ -166,6 +167,56 @@ namespace Asp.Net9.Ecommerce.API.Controllers
                 return NoContent();
 
             return result.ToActionResult();
+        }
+
+
+        
+        /// <summary>
+        /// Uploads a product image and returns its public URL
+        /// </summary>
+        /// <param name="file">The image file to upload</param>
+        /// <returns>The public URL of the uploaded image</returns>
+        /// <response code="200">Returns the image URL</response>
+        /// <response code="400">If the file is invalid</response>
+        [HttpPost("images/upload")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UploadProductImage( IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest(ErrorResponse.ValidationError(new List<ValidationError> { new("File", "No file uploaded.") }));
+
+            
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(ext))
+                return BadRequest(ErrorResponse.ValidationError(new List<ValidationError> { new("File", "Unsupported file type.") }));
+
+
+            const long maxFileSize = 5 * 1024 * 1024;
+            if (file.Length > maxFileSize)
+                return BadRequest(ErrorResponse.ValidationError(new List<ValidationError> { new("File", "File size exceeds 5MB limit.") }));
+
+            // Ensure the directory exists
+            var imagesDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "products");
+            if (!Directory.Exists(imagesDir))
+                Directory.CreateDirectory(imagesDir);
+
+            // Generate a unique file name
+            var fileName = $"{Guid.NewGuid()}{ext}";
+            var filePath = Path.Combine(imagesDir, fileName);
+
+            // Save the file
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            // Build the public URL (relative to wwwroot)
+            var url = $"/images/products/{fileName}";
+            return Ok(url);
         }
     }
 } 

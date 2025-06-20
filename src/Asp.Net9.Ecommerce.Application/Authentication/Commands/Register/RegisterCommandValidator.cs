@@ -23,12 +23,12 @@ namespace Asp.Net9.Ecommerce.Application.Authentication.Commands.Register
                 .Equal(x => x.Password).WithMessage("Passwords do not match");
 
             RuleFor(x => x.FirstName)
-                .NotEmpty().WithMessage("First Name is required")
-                .MaximumLength(100).WithMessage("First Name must not exceed 100 characters");
+                .MaximumLength(100).WithMessage("First Name must not exceed 100 characters")
+                .When(x => !string.IsNullOrEmpty(x.FirstName));
 
             RuleFor(x => x.LastName)
-                .NotEmpty().WithMessage("Last Name is required")
-                .MaximumLength(100).WithMessage("Last Name must not exceed 100 characters");
+                .MaximumLength(100).WithMessage("Last Name must not exceed 100 characters")
+                .When(x => !string.IsNullOrEmpty(x.LastName));
         }
     }
 } 

@@ -1,4 +1,5 @@
 using Asp.Net9.Ecommerce.Application.Common.Interfaces;
+using Asp.Net9.Ecommerce.Domain.Catalog;
 using Asp.Net9.Ecommerce.Shared.Results;
 using MediatR;
 
@@ -31,9 +32,27 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Categories.Commands.UpdateCateg
                     return Result.Failure(ErrorResponse.Conflict($"A category with slug '{request.Slug}' already exists."));
                 }
 
+                // Validate that all variation types exist
+                foreach (var variationType in request.VariationTypes)
+                {
+                    if (!await _unitOfWork.VariationTypes.ExistsByIdAsync(variationType.VariationTypeId, cancellationToken))
+                    {
+                        return Result.Failure(ErrorResponse.NotFound($"Variation type with ID '{variationType.VariationTypeId}' not found."));
+                    }
+                }
+
                 var updateResult = category.Update(request.Name, request.Description, request.Slug);
                 if (updateResult.IsFailure)
                     return updateResult;
+
+                // Update variation types
+                var updateVariationTypesResult = category.UpdateVariationTypes(
+                    request.VariationTypes.Select(vt => 
+                        CategoryVariationType.Create(vt.VariationTypeId, vt.IsRequired).Value)
+                    .ToList());
+
+                if (updateVariationTypesResult.IsFailure)
+                    return updateVariationTypesResult;
 
                 // Handle IsActive state change
                 if (category.IsActive != request.IsActive)

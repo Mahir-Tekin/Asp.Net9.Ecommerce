@@ -72,7 +72,7 @@ namespace Asp.Net9.Ecommerce.Shared.Results
         public Result<TOut> Map<TOut>(Func<T, TOut> func)
         {
             return IsSuccess ? Result.Success(func(Value)) : Result.Failure<TOut>(Error);
-        }
+        } 
 
         public Result<T> OnSuccess(Action<T> action)
         {

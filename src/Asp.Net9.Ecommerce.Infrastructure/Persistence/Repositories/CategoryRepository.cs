@@ -15,17 +15,19 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
 
         public async Task<Category> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            // Always include subcategories when loading the aggregate
+            // Include both subcategories and parent category for complete hierarchy
             return await _context.Categories
                 .Include(c => c.SubCategories)
+                .Include(c => c.ParentCategory)
                 .FirstOrDefaultAsync(c => c.Id == id && c.DeletedAt == null, cancellationToken);
         }
 
         public async Task<Category> GetBySlugAsync(string slug, CancellationToken cancellationToken = default)
         {
-            // Always include subcategories when loading the aggregate
+            // Include both subcategories and parent category for complete hierarchy
             return await _context.Categories
                 .Include(c => c.SubCategories)
+                .Include(c => c.ParentCategory)
                 .FirstOrDefaultAsync(c => c.Slug == slug && c.DeletedAt == null, cancellationToken);
         }
 
@@ -43,18 +45,20 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
 
         public async Task<IReadOnlyList<Category>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            // Include subcategories for complete aggregates
+            // Include both subcategories and parent categories for complete hierarchy
             return await _context.Categories
                 .Include(c => c.SubCategories)
+                .Include(c => c.ParentCategory)
                 .Where(c => c.DeletedAt == null)
                 .ToListAsync(cancellationToken);
         }
 
         public async Task<IReadOnlyList<Category>> GetCategoryTreeAsync(CancellationToken cancellationToken = default)
         {
-            // Get all active categories with their subcategories in a single query
+            // Get all active categories with their relationships
             var allCategories = await _context.Categories
                 .Include(c => c.SubCategories)
+                .Include(c => c.ParentCategory)
                 .Where(c => c.DeletedAt == null && c.IsActive)
                 .ToListAsync(cancellationToken);
 
@@ -84,6 +88,14 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
             // Soft delete the aggregate root
             category.SetDeleted();
             _context.Categories.Update(category);
+        }
+
+        public async Task<Category> GetCategoryByIdAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            return await _context.Categories
+                .Include(c => c.SubCategories)
+                .Include(c => c.VariationTypes)
+                .FirstOrDefaultAsync(c => c.Id == id && c.DeletedAt == null, cancellationToken);
         }
     }
 } 

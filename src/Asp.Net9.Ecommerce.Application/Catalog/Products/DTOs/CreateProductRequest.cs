@@ -9,10 +9,20 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.DTOs
         public Guid CategoryId { get; set; }
 
         // Variants information
-        public List<ProductVariantRequest> Variants { get; set; }
+        public List<ProductVariantRequest> Variants { get; set; } = new();
 
-        // Optional variant types for the product
-        public List<VariantTypeRequest>? VariantTypes { get; set; }
+        // Optional variant type IDs for the product
+        public List<Guid>? VariantTypeIds { get; set; }
+
+        // Images for the product
+        public List<ProductImageRequest>? Images { get; set; }
+    }
+
+    public class ProductImageRequest
+    {
+        public string Url { get; set; }
+        public string? AltText { get; set; }
+        public bool IsMain { get; set; }
     }
 
     public class ProductVariantRequest
@@ -22,20 +32,8 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.DTOs
         public decimal? Price { get; set; }
         public int StockQuantity { get; set; }
         public bool TrackInventory { get; set; }
-        public Dictionary<string, string> Variations { get; set; }
+        // Key: VariationTypeId, Value: VariantOptionId
+        public Dictionary<Guid, Guid> SelectedOptions { get; set; }
     }
 
-    public class VariantTypeRequest
-    {
-        public string Name { get; set; }
-        public string DisplayName { get; set; }
-        public List<VariantOptionRequest> Options { get; set; }
-    }
-
-    public class VariantOptionRequest
-    {
-        public string Value { get; set; }
-        public string DisplayValue { get; set; }
-        public int SortOrder { get; set; }
-    }
 } 

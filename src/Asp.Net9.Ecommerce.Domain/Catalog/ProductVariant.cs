@@ -7,13 +7,14 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
     public class ProductVariant : BaseEntity
     {
         public Guid ProductId { get; private set; }
-        public string SKU { get; private set; }
-        public string Name { get; private set; }
-        
+        public string? SKU { get; private set; }
+        public string? Name { get; private set; }
+
         // Pricing - each variant can have its own price or inherit from product
         private decimal? _price;
-        public decimal Price => _price ?? Product.BasePrice;
-        
+        public decimal Price => _price ?? Product!.BasePrice;
+        public decimal? OldPrice { get; private set; }
+
         // Inventory
         private int _stockQuantity;
         public int StockQuantity => _stockQuantity;
@@ -21,11 +22,14 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
         public bool IsActive { get; private set; }
         public bool TrackInventory { get; private set; }
 
-        // Variations - stores type name and option value
-        private readonly Dictionary<string, string> _variations = new();
+        // Variations - stores selected VariantOption IDs per VariationType ID
+        private readonly Dictionary<Guid, Guid> _variantOptions = new();
+
+        // Navigation property for many-to-many
+        public ICollection<VariantOption> SelectedOptions { get; private set; } = new List<VariantOption>();
 
         // Navigation property
-        public Product Product { get; private set; }
+        public Product? Product { get; private set; }
 
         protected ProductVariant() { } // For EF Core
 
@@ -33,7 +37,9 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             Guid productId,
             string sku,
             string name,
-            decimal? price = null,
+            decimal? price,
+            IReadOnlyCollection<VariationType> variantTypes,
+            IDictionary<Guid, Guid> selectedOptions,
             int stockQuantity = 0,
             int minStockThreshold = 10,
             bool trackInventory = true)
@@ -41,6 +47,36 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             var errors = ValidateInputs(sku, name, price, minStockThreshold);
             if (errors.Any())
                 return Result.Failure<ProductVariant>(ErrorResponse.ValidationError(errors));
+
+            // Validate that all required variant types are present
+            var missingTypes = variantTypes.Select(vt => vt.Id).Except(selectedOptions.Keys).ToList();
+            if (missingTypes.Any())
+            {
+                return Result.Failure<ProductVariant>(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("Variant",
+                        $"Missing options for variant types: {string.Join(", ", missingTypes)}") }));
+            }
+
+            // Validate that each selected option exists and belongs to the correct type
+            var selectedOptionEntities = new List<VariantOption>();
+            foreach (var kvp in selectedOptions)
+            {
+                var type = variantTypes.FirstOrDefault(vt => vt.Id == kvp.Key);
+                if (type == null)
+                {
+                    return Result.Failure<ProductVariant>(ErrorResponse.ValidationError(
+                        new List<ValidationError> { new("Variant",
+                            $"Variant type {kvp.Key} is not defined for this product") }));
+                }
+                var option = type.Options.FirstOrDefault(o => o.Id == kvp.Value);
+                if (option == null)
+                {
+                    return Result.Failure<ProductVariant>(ErrorResponse.ValidationError(
+                        new List<ValidationError> { new("Variant",
+                            $"Option {kvp.Value} is not valid for variant type {type.Name}") }));
+                }
+                selectedOptionEntities.Add(option);
+            }
 
             var variant = new ProductVariant
             {
@@ -51,52 +87,63 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
                 _stockQuantity = stockQuantity,
                 MinStockThreshold = minStockThreshold,
                 IsActive = true,
-                TrackInventory = trackInventory
+                TrackInventory = trackInventory,
+                SelectedOptions = selectedOptionEntities
             };
+
+            // Set the _variantOptions dictionary
+            foreach (var kvp in selectedOptions)
+            {
+                variant._variantOptions[kvp.Key] = kvp.Value;
+            }
 
             return Result.Success(variant);
         }
 
-        public Result AddVariation(string typeName, string optionValue)
+
+        public Result AddOption(Guid variationTypeId, Guid optionId, VariantOption? option = null)
         {
-            if (string.IsNullOrWhiteSpace(typeName))
+            if (variationTypeId == Guid.Empty)
                 return Result.Failure(ErrorResponse.ValidationError(
-                    new List<ValidationError> { new("TypeName", "Variant type name is required") }));
-
-            if (string.IsNullOrWhiteSpace(optionValue))
+                    new List<ValidationError> { new("VariationTypeId", "Variation type ID is required") }));
+            if (optionId == Guid.Empty)
                 return Result.Failure(ErrorResponse.ValidationError(
-                    new List<ValidationError> { new("OptionValue", "Option value is required") }));
+                    new List<ValidationError> { new("OptionId", "Option ID is required") }));
 
-            _variations[typeName.Trim().ToLowerInvariant()] = optionValue.Trim().ToLowerInvariant();
+            _variantOptions[variationTypeId] = optionId;
+            if (option != null && !SelectedOptions.Any(o => o.Id == option.Id))
+                SelectedOptions.Add(option);
             return Result.Success();
         }
 
-        public Result RemoveVariation(string typeName)
-        {
-            if (!_variations.ContainsKey(typeName.Trim().ToLowerInvariant()))
-                return Result.NotFound($"Variation type {typeName} not found");
 
-            _variations.Remove(typeName.Trim().ToLowerInvariant());
+        public Result RemoveOption(Guid variationTypeId)
+        {
+            if (!_variantOptions.ContainsKey(variationTypeId))
+                return Result.NotFound($"Variation type {variationTypeId} not found");
+            _variantOptions.Remove(variationTypeId);
+            var toRemove = SelectedOptions.FirstOrDefault(o => o.VariationTypeId == variationTypeId);
+            if (toRemove != null)
+                SelectedOptions.Remove(toRemove);
             return Result.Success();
         }
 
-        public bool HasVariation(string typeName)
+
+        public bool HasOption(Guid variationTypeId)
         {
-            return _variations.ContainsKey(typeName.Trim().ToLowerInvariant());
+            return _variantOptions.ContainsKey(variationTypeId);
         }
 
-        public string? GetVariationOption(string typeName)
+
+        public Guid? GetOptionId(Guid variationTypeId)
         {
-            return _variations.TryGetValue(typeName.Trim().ToLowerInvariant(), out var value) ? value : null;
+            return _variantOptions.TryGetValue(variationTypeId, out var value) ? value : null;
         }
 
-        public IReadOnlyDictionary<string, string> GetVariations()
+
+        public IReadOnlyDictionary<Guid, Guid> GetVariantOptions()
         {
-            return _variations.ToDictionary(
-                kvp => kvp.Key,
-                kvp => kvp.Value,
-                StringComparer.OrdinalIgnoreCase
-            );
+            return new Dictionary<Guid, Guid>(_variantOptions);
         }
 
         public Result UpdateStock(int quantity)
@@ -195,4 +242,4 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             return errors;
         }
     }
-} 
+}

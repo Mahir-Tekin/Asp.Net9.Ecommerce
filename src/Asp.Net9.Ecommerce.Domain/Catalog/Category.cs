@@ -17,6 +17,10 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
         private readonly List<Category> _subCategories = new();
         public IReadOnlyCollection<Category> SubCategories => _subCategories.AsReadOnly();
 
+        // Variation types
+        private readonly List<CategoryVariationType> _variationTypes = new();
+        public IReadOnlyCollection<CategoryVariationType> VariationTypes => _variationTypes.AsReadOnly();
+
         protected Category() { } // For EF Core
 
         public static Result<Category> Create(string name, string description, string slug, Guid? parentCategoryId = null)
@@ -104,6 +108,67 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
         {
             if (Id == categoryId) return true;
             return _subCategories.Any(sc => sc.IsInHierarchy(categoryId));
+        }
+
+        public Result AddVariationType(Guid variationTypeId, bool isRequired)
+        {
+            if (_variationTypes.Any(vt => vt.VariationTypeId == variationTypeId))
+                return Result.Failure(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("VariationType", "This variation type is already added") }));
+
+            var variationTypeResult = CategoryVariationType.Create(variationTypeId, isRequired);
+            if (variationTypeResult.IsFailure)
+                return Result.Failure(variationTypeResult.Error);
+
+            _variationTypes.Add(variationTypeResult.Value);
+            return Result.Success();
+        }
+
+        public Result RemoveVariationType(Guid variationTypeId)
+        {
+            var variationType = _variationTypes.FirstOrDefault(vt => vt.VariationTypeId == variationTypeId);
+            if (variationType == null)
+                return Result.NotFound("Variation type not found");
+
+            _variationTypes.Remove(variationType);
+            return Result.Success();
+        }
+
+        public IReadOnlyCollection<CategoryVariationType> GetEffectiveVariationTypes()
+        {
+            var variations = new List<CategoryVariationType>();
+            
+            // Add parent variations if exists
+            if (ParentCategory != null)
+            {
+                variations.AddRange(ParentCategory.GetEffectiveVariationTypes());
+            }
+            
+            // Add this category's variations
+            variations.AddRange(_variationTypes);
+            
+            return variations;
+        }
+
+        public Result UpdateVariationTypes(List<CategoryVariationType> variationTypes)
+        {
+            // Clear existing variation types
+            _variationTypes.Clear();
+
+            // Add new variation types
+            foreach (var variationType in variationTypes)
+            {
+                if (_variationTypes.Any(vt => vt.VariationTypeId == variationType.VariationTypeId))
+                    return Result.Failure(ErrorResponse.ValidationError(
+                        new List<ValidationError> { new("VariationType", "Duplicate variation type found") }));
+
+                _variationTypes.Add(variationType);
+            }
+
+            // Add domain event
+            AddDomainEvent(new CategoryVariationTypesUpdatedEvent(Id, variationTypes.Select(vt => vt.VariationTypeId).ToList()));
+
+            return Result.Success();
         }
 
         private static List<ValidationError> ValidateInputs(string name, string description, string slug)

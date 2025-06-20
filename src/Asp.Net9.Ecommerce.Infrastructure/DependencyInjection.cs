@@ -69,7 +69,8 @@ namespace Asp.Net9.Ecommerce.Infrastructure
                     IssuerSigningKey = new SymmetricSecurityKey(
                         Encoding.UTF8.GetBytes(jwtSettings?.SecretKey ?? throw new InvalidOperationException("JWT SecretKey is not configured")))
                 };
-            });
+            })
+            .AddCookie();
 
             return services;
         }

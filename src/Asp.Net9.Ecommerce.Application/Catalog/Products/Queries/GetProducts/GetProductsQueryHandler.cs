@@ -1,3 +1,4 @@
+using Asp.Net9.Ecommerce.Application.Catalog.Products.DTOs;
 using Asp.Net9.Ecommerce.Application.Common.Interfaces;
 using Asp.Net9.Ecommerce.Shared.Results;
 using AutoMapper;

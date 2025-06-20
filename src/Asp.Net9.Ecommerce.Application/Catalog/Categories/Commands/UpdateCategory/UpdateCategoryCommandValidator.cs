@@ -19,6 +19,13 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Categories.Commands.UpdateCateg
                 .MaximumLength(100).WithMessage("Slug must not exceed 100 characters")
                 .Matches("^[a-z0-9]+(?:-[a-z0-9]+)*$")
                 .WithMessage("Slug must be in valid format (lowercase letters, numbers, and hyphens only)");
+
+            RuleForEach(x => x.VariationTypes)
+                .ChildRules(variationType =>
+                {
+                    variationType.RuleFor(x => x.VariationTypeId)
+                        .NotEmpty().WithMessage("Variation type ID is required");
+                });
         }
     }
 } 

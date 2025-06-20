@@ -27,8 +27,6 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
             {
                 await _context.Products.AddAsync(product, cancellationToken);
                 
-                // Note: We don't call SaveChanges here because that's handled by the UnitOfWork
-                // This keeps the unit of work pattern intact while still providing error handling
                 
                 return Result.Success();
             }
@@ -85,40 +83,25 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
             int pageSize = 10,
             CancellationToken cancellationToken = default)
         {
-            // Start with base query
+            // Ensure pageNumber and pageSize are at least 1
+            pageNumber = pageNumber < 1 ? 1 : pageNumber;
+            pageSize = pageSize < 1 ? 10 : pageSize;
+
+            // Start with base query, include images for main image selection
             var query = _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Variants)
+                .Include(p => p.Images)
                 .Where(p => p.DeletedAt == null);
 
-            // Apply filters
+            // Only the search filter is active for now; other filter parameters are accepted but not applied.
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
-                searchTerm = searchTerm.Trim().ToLower();
-                query = query.Where(p => 
-                    p.Name.ToLower().Contains(searchTerm) || 
-                    p.Description.ToLower().Contains(searchTerm) ||
-                    p.Variants.Any(v => v.SKU.ToLower().Contains(searchTerm)));
+                var lowered = searchTerm.Trim().ToLower();
+                query = query.Where(p =>
+                    p.Name.ToLower().Contains(lowered) ||
+                    p.Variants.Any(v => v.SKU.ToLower().Contains(lowered)));
             }
-
-            if (categoryId.HasValue)
-                query = query.Where(p => p.CategoryId == categoryId.Value);
-
-            if (minPrice.HasValue)
-                query = query.Where(p => p.BasePrice >= minPrice.Value);
-
-            if (maxPrice.HasValue)
-                query = query.Where(p => p.BasePrice <= maxPrice.Value);
-
-            if (hasStock.HasValue)
-            {
-                query = hasStock.Value
-                    ? query.Where(p => p.Variants.Any(v => !v.TrackInventory || v.StockQuantity > 0))
-                    : query.Where(p => p.Variants.All(v => v.TrackInventory && v.StockQuantity == 0));
-            }
-
-            if (isActive.HasValue)
-                query = query.Where(p => p.IsActive == isActive.Value);
 
             // Get total count before applying pagination
             var totalCount = await query.CountAsync(cancellationToken);
@@ -135,7 +118,7 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
                 _ => query.OrderByDescending(p => p.CreatedAt)
             };
 
-            // Apply pagination
+            // Apply pagination: skip (pageNumber-1)*pageSize and take pageSize items
             var items = await query
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)

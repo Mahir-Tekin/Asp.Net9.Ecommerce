@@ -36,6 +36,16 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Categories.Commands.CreateCateg
                     }
                 }
 
+                // Validate variation types exist
+                foreach (var variationType in request.VariationTypes)
+                {
+                    var exists = await _unitOfWork.VariationTypes.ExistsByIdAsync(variationType.VariationTypeId, cancellationToken);
+                    if (!exists)
+                    {
+                        return Result.Failure<Guid>(ErrorResponse.NotFound($"Variation type with ID '{variationType.VariationTypeId}' not found"));
+                    }
+                }
+
                 // Create category using domain factory method
                 var categoryResult = Category.Create(
                     request.Name,
@@ -47,6 +57,14 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Categories.Commands.CreateCateg
                     return Result.Failure<Guid>(categoryResult.Error);
 
                 var category = categoryResult.Value;
+
+                // Add variation types
+                foreach (var variationType in request.VariationTypes)
+                {
+                    var addResult = category.AddVariationType(variationType.VariationTypeId, variationType.IsRequired);
+                    if (addResult.IsFailure)
+                        return Result.Failure<Guid>(addResult.Error);
+                }
 
                 _unitOfWork.Categories.Add(category);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);

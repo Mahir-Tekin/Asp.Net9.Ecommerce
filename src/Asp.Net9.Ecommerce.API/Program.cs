@@ -78,9 +78,10 @@ builder.Services.AddCors(options =>
         builder =>
         {
             builder
-                .AllowAnyOrigin()
+                .WithOrigins("http://localhost:3000")
                 .AllowAnyMethod()
-                .AllowAnyHeader();
+                .AllowAnyHeader()
+                .AllowCredentials();
         });
 });
 
@@ -104,6 +105,7 @@ app.UseCors("AllowAll");
 // Add authentication & authorization middleware
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseStaticFiles();
 
 app.MapControllers();
 

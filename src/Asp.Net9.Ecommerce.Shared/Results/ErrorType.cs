@@ -7,6 +7,7 @@ namespace Asp.Net9.Ecommerce.Shared.Results
         Unauthorized,
         Forbidden,
         General,
-        Conflict    // For duplicate entries, etc.
+        Conflict,    // For duplicate entries, etc.
+        Internal     // For system/internal errors
     }
 } 

@@ -10,6 +10,8 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
+using Asp.Net9.Ecommerce.Application.Catalog.Categories.Queries.GetAllCategoriesForAdmin;
+using Asp.Net9.Ecommerce.Application.Catalog.Categories.Queries.GetCategoryById;
 
 namespace Asp.Net9.Ecommerce.API.Controllers
 {
@@ -77,6 +79,31 @@ namespace Asp.Net9.Ecommerce.API.Controllers
         }
 
         /// <summary>
+        /// Gets all categories (including inactive) in a nested tree structure for admin
+        /// </summary>
+        /// <remarks>
+        /// Returns a hierarchical structure of all categories where:
+        /// - Both active and inactive categories are included
+        /// - Root categories (no parent) are at the top level
+        /// - Each category includes its subcategories recursively
+        /// </remarks>
+        /// <response code="200">Returns the list of all categories in a tree structure</response>
+        /// <response code="401">If the user is not authenticated</response>
+        /// <response code="403">If the user is not authorized</response>
+        /// <response code="500">If there was an internal error while processing the request</response>
+        [HttpGet("admin")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(typeof(List<CategoryNestedDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetAllForAdmin(CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(new GetAllCategoriesForAdminQuery(), cancellationToken);
+            return result.ToActionResult();
+        }
+
+        /// <summary>
         /// Gets a category by ID
         /// </summary>
         /// <param name="id">The ID of the category to get</param>
@@ -86,9 +113,14 @@ namespace Asp.Net9.Ecommerce.API.Controllers
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(CategoryNestedDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetById(Guid id)
+        public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
         {
-            return Ok(); // This will be implemented later
+            var categoryResult = await _mediator.Send(new GetCategoryByIdQuery(id), cancellationToken);
+
+            if (categoryResult == null)
+                return Result.NotFound("Category not found").ToActionResult();
+
+            return Result.Success(categoryResult).ToActionResult();
         }
 
         /// <summary>

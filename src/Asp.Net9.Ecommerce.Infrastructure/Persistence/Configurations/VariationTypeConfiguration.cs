@@ -22,11 +22,12 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Configurations
             builder.Property(t => t.IsActive)
                 .IsRequired();
 
-            // Store options as JSON
-            builder.OwnsMany(t => t.Options, options =>
-            {
-                options.ToJson();
-            });
+            // One-to-many relationship with VariantOption
+            builder.HasMany(t => t.Options)
+                .WithOne(o => o.VariationType)
+                .HasForeignKey(o => o.VariationTypeId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
 
             // Indexes
             builder.HasIndex(t => t.Name).IsUnique();

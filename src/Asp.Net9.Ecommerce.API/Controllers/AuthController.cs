@@ -2,11 +2,13 @@ using Asp.Net9.Ecommerce.Application.Authentication.Commands.Login;
 using Asp.Net9.Ecommerce.Application.Authentication.Commands.RefreshToken;
 using Asp.Net9.Ecommerce.Application.Authentication.Commands.Register;
 using Asp.Net9.Ecommerce.Application.Authentication.DTOs;
+using Asp.Net9.Ecommerce.Application.Authentication.Queries.GetCurrentUser;
 using Asp.Net9.Ecommerce.Shared.Results;
 using AutoMapper;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Asp.Net9.Ecommerce.API.Controllers
 {
@@ -78,6 +80,27 @@ namespace Asp.Net9.Ecommerce.API.Controllers
         public async Task<ActionResult<AuthResponse>> RefreshToken([FromBody] RefreshTokenCommand request)
         {
             var result = await _mediator.Send(request);
+
+            if (result.IsFailure)
+                return BadRequest(result.Error);
+
+            return Ok(result.Value);
+        }
+
+        /// <summary>
+        /// Get current user information
+        /// </summary>
+        /// <returns>Current user details if authenticated</returns>
+        [HttpGet("me")]
+        [Authorize]
+        [ProducesResponseType(typeof(UserProfileResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<UserProfileResponse>> GetCurrentUser()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var query = new GetCurrentUserQuery(userId);
+            var result = await _mediator.Send(query);
 
             if (result.IsFailure)
                 return BadRequest(result.Error);
