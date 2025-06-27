@@ -3,13 +3,13 @@ using Asp.Net9.Ecommerce.Application.Catalog.Categories.Commands.DeleteCategory;
 using Asp.Net9.Ecommerce.Application.Catalog.Categories.Commands.UpdateCategory;
 using Asp.Net9.Ecommerce.Application.Catalog.Categories.DTOs;
 using Asp.Net9.Ecommerce.Application.Catalog.Categories.Queries;
+using Asp.Net9.Ecommerce.Application.Catalog.Categories.Queries.GetCategoryFilters;
 using Asp.Net9.Ecommerce.API.Extensions;
 using Asp.Net9.Ecommerce.Shared.Results;
 using AutoMapper;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
 using Asp.Net9.Ecommerce.Application.Catalog.Categories.Queries.GetAllCategoriesForAdmin;
 using Asp.Net9.Ecommerce.Application.Catalog.Categories.Queries.GetCategoryById;
 
@@ -180,6 +180,24 @@ namespace Asp.Net9.Ecommerce.API.Controllers
             if (result.IsSuccess)
                 return NoContent();
 
+            return result.ToActionResult();
+        }
+
+        /// <summary>
+        /// Gets available filters for a category (variation types and options)
+        /// </summary>
+        /// <param name="id">The ID of the category</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Available filters for the category</returns>
+        /// <response code="200">Returns the available filters</response>
+        /// <response code="404">If the category was not found</response>
+        [HttpGet("{id}/filters")]
+        [ProducesResponseType(typeof(CategoryFiltersResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetFilters(Guid id, CancellationToken cancellationToken)
+        {
+            var query = new GetCategoryFiltersQuery { CategoryId = id };
+            var result = await _mediator.Send(query, cancellationToken);
             return result.ToActionResult();
         }
     }

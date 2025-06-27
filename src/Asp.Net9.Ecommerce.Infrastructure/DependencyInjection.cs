@@ -42,6 +42,7 @@ namespace Asp.Net9.Ecommerce.Infrastructure
             // Add Repositories
             services.AddScoped<ICategoryRepository, CategoryRepository>();
             services.AddScoped<IProductRepository, ProductRepository>();
+            services.AddScoped<IOrderRepository, OrderRepository>();
 
             // Add Unit of Work
             services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -88,4 +89,4 @@ namespace Asp.Net9.Ecommerce.Infrastructure
             return services;
         }
     }
-} 
+}

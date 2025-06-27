@@ -29,9 +29,11 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Configurations
                 .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired();
 
+            // Many-to-many relationship with Category is configured in CategoryConfiguration
+
             // Indexes
             builder.HasIndex(t => t.Name).IsUnique();
             builder.HasIndex(t => t.IsActive);
         }
     }
-} 
+}

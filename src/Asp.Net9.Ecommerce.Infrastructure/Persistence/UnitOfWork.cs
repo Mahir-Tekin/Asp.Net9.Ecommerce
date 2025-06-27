@@ -15,10 +15,12 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence
         private IProductRepository _products;
         private ICategoryRepository _categories;
         private IVariationTypeRepository _variationTypes;
+        private IOrderRepository _orders;
 
         public IProductRepository Products => _products ??= new ProductRepository(_context);
         public ICategoryRepository Categories => _categories ??= new CategoryRepository(_context);
         public IVariationTypeRepository VariationTypes => _variationTypes ??= new VariationTypeRepository(_context);
+        public IOrderRepository Orders => _orders ??= new OrderRepository(_context);
 
         public UnitOfWork(ApplicationDbContext context)
         {
@@ -92,4 +94,4 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence
             _disposed = true;
         }
     }
-} 
+}

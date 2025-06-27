@@ -16,7 +16,7 @@ export async function fetchAdminProductList({
 }): Promise<AdminProductListResponse> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : undefined;
   const params = new URLSearchParams({
-    page: String(page),
+    pageNumber: String(page),
     pageSize: String(pageSize),
     ...(searchTerm ? { searchTerm } : {}),
     ...(categoryId ? { categoryId } : {})

@@ -66,6 +66,9 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Configurations
             builder.HasIndex("_stockQuantity"); // For inventory queries
             builder.HasIndex(v => new { v.IsActive, v.DeletedAt }); // Composite index for active variants
             builder.HasIndex(v => new { v.ProductId, v.IsActive }); // For querying active variants of a product
+
+            builder.Property(v => v.RowVersion)
+                .IsRowVersion();
         }
     }
-} 
+}

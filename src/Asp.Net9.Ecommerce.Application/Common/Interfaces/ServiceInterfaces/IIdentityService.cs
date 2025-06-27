@@ -59,5 +59,25 @@ namespace Asp.Net9.Ecommerce.Application.Common.Interfaces.ServiceInterfaces
         /// Assigns a role to a user
         /// </summary>
         Task<Result> AssignUserToRoleAsync(string userId, string role);
+
+        /// <summary>
+        /// Adds a new address for a user
+        /// </summary>
+        Task<Result<Guid>> AddAddressAsync(
+            Guid userId,
+            string firstName,
+            string lastName,
+            string phoneNumber,
+            string city,
+            string district,
+            string neighborhood,
+            string addressLine,
+            string addressTitle,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets all addresses for a user
+        /// </summary>
+        Task<List<Address>> GetAddressesByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
     }
-} 
+}

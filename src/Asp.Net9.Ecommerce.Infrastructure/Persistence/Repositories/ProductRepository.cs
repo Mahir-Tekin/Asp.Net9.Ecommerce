@@ -1,5 +1,6 @@
 using Asp.Net9.Ecommerce.Application.Common.Interfaces.RepositoryInterfaces;
 using Asp.Net9.Ecommerce.Application.Catalog.Products.Queries.GetProducts;
+using Asp.Net9.Ecommerce.Application.Catalog.Products.DTOs;
 using Asp.Net9.Ecommerce.Domain.Catalog;
 using Asp.Net9.Ecommerce.Shared.Results;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,12 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
         {
             return await _context.ProductVariants
                 .AnyAsync(v => v.SKU == sku && v.Product.DeletedAt == null, cancellationToken);
+        }
+
+        public async Task<bool> ExistsBySlugAsync(string slug, CancellationToken cancellationToken = default)
+        {
+            return await _context.Products
+                .AnyAsync(p => p.Slug == slug && p.DeletedAt == null, cancellationToken);
         }
 
         public async Task<Result> AddAsync(Product product, CancellationToken cancellationToken = default)
@@ -51,8 +58,22 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
             return await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Variants)
+                    .ThenInclude(v => v.SelectedOptions)
                 .Include(p => p.VariantTypes)
+                    .ThenInclude(vt => vt.Options)
                 .FirstOrDefaultAsync(p => p.Id == id && p.DeletedAt == null, cancellationToken);
+        }
+
+        public async Task<Product> GetBySlugWithDetailsAsync(string slug, CancellationToken cancellationToken = default)
+        {
+            return await _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.Variants)
+                    .ThenInclude(v => v.SelectedOptions)
+                .Include(p => p.VariantTypes)
+                    .ThenInclude(vt => vt.Options)
+                .Include(p => p.Images)
+                .FirstOrDefaultAsync(p => p.Slug == slug && p.DeletedAt == null, cancellationToken);
         }
 
         public async Task<Result> UpdateAsync(Product product, CancellationToken cancellationToken = default)
@@ -78,6 +99,7 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
             decimal? maxPrice = null,
             bool? hasStock = null,
             bool? isActive = null,
+            List<VariationFilter>? variationFilters = null,
             ProductSortBy sortBy = ProductSortBy.CreatedAtDesc,
             int pageNumber = 1,
             int pageSize = 10,
@@ -87,20 +109,81 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
             pageNumber = pageNumber < 1 ? 1 : pageNumber;
             pageSize = pageSize < 1 ? 10 : pageSize;
 
-            // Start with base query, include images for main image selection
+            // Start with base query, include images for main image selection and variant options for filtering
             var query = _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Variants)
+                    .ThenInclude(v => v.SelectedOptions)
+                        .ThenInclude(so => so.VariationType)
                 .Include(p => p.Images)
                 .Where(p => p.DeletedAt == null);
 
-            // Only the search filter is active for now; other filter parameters are accepted but not applied.
+            // Apply filters
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 var lowered = searchTerm.Trim().ToLower();
                 query = query.Where(p =>
-                    p.Name.ToLower().Contains(lowered) ||
-                    p.Variants.Any(v => v.SKU.ToLower().Contains(lowered)));
+                    (p.Name != null && p.Name.ToLower().Contains(lowered)) ||
+                    p.Variants.Any(v => v.SKU != null && v.SKU.ToLower().Contains(lowered)));
+            }
+
+            // Filter by category
+            if (categoryId.HasValue)
+            {
+                query = query.Where(p => p.CategoryId == categoryId.Value);
+            }
+
+            // Filter by price range
+            if (minPrice.HasValue)
+            {
+                query = query.Where(p => p.BasePrice >= minPrice.Value);
+            }
+
+            if (maxPrice.HasValue)
+            {
+                query = query.Where(p => p.BasePrice <= maxPrice.Value);
+            }
+
+            // Filter by stock availability
+            if (hasStock.HasValue)
+            {
+                if (hasStock.Value)
+                {
+                    query = query.Where(p => p.Variants.Any(v => v.StockQuantity > 0));
+                }
+                else
+                {
+                    query = query.Where(p => p.Variants.All(v => v.StockQuantity <= 0));
+                }
+            }
+
+            // Filter by active status
+            if (isActive.HasValue)
+            {
+                query = query.Where(p => p.IsActive == isActive.Value);
+            }
+
+            // Filter by variation types and options
+            if (variationFilters?.Any() == true)
+            {
+                foreach (var filter in variationFilters)
+                {
+                    // Support both GUID-based and value-based filtering
+                    if (filter.OptionIds?.Any() == true)
+                    {
+                        // GUID-based filtering: Products must have at least one variant with at least one of the specified option IDs
+                        query = query.Where(p => p.Variants.Any(v => 
+                            v.SelectedOptions.Any(so => filter.OptionIds.Contains(so.Id))));
+                    }
+                    else if (filter.OptionValues?.Any() == true && !string.IsNullOrEmpty(filter.VariationTypeName))
+                    {
+                        // Value-based filtering: Products must have at least one variant with at least one of the specified option values
+                        query = query.Where(p => p.Variants.Any(v => 
+                            v.SelectedOptions.Any(so => 
+                                so.VariationType.Name.ToLower() == filter.VariationTypeName.ToLower() &&
+                                filter.OptionValues.Contains(so.Value))));
+                    }
+                }
             }
 
             // Get total count before applying pagination
@@ -109,8 +192,6 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
             // Apply sorting
             query = sortBy switch
             {
-                ProductSortBy.NameAsc => query.OrderBy(p => p.Name),
-                ProductSortBy.NameDesc => query.OrderByDescending(p => p.Name),
                 ProductSortBy.PriceAsc => query.OrderBy(p => p.BasePrice),
                 ProductSortBy.PriceDesc => query.OrderByDescending(p => p.BasePrice),
                 ProductSortBy.CreatedAtAsc => query.OrderBy(p => p.CreatedAt),
@@ -126,5 +207,13 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
 
             return (items, totalCount);
         }
+
+        public async Task<List<ProductVariant>> GetVariantsByIdsAsync(IEnumerable<Guid> variantIds, CancellationToken cancellationToken = default)
+        {
+            return await _context.ProductVariants
+                .Include(v => v.Product)
+                .Where(v => variantIds.Contains(v.Id) && v.Product != null && v.Product.DeletedAt == null)
+                .ToListAsync(cancellationToken);
+        }
     }
-} 
+}

@@ -36,14 +36,12 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Categories.Commands.CreateCateg
                     }
                 }
 
-                // Validate variation types exist
-                foreach (var variationType in request.VariationTypes)
+                // Validate variation types exist and fetch them
+                var variationTypeIds = request.VariationTypes.Select(vt => vt.VariationTypeId).ToList();
+                var variationTypes = await _unitOfWork.VariationTypes.GetByIdsAsync(variationTypeIds, cancellationToken);
+                if (variationTypes.Count != variationTypeIds.Count)
                 {
-                    var exists = await _unitOfWork.VariationTypes.ExistsByIdAsync(variationType.VariationTypeId, cancellationToken);
-                    if (!exists)
-                    {
-                        return Result.Failure<Guid>(ErrorResponse.NotFound($"Variation type with ID '{variationType.VariationTypeId}' not found"));
-                    }
+                    return Result.Failure<Guid>(ErrorResponse.NotFound("One or more variation types not found"));
                 }
 
                 // Create category using domain factory method
@@ -58,10 +56,10 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Categories.Commands.CreateCateg
 
                 var category = categoryResult.Value;
 
-                // Add variation types
-                foreach (var variationType in request.VariationTypes)
+                // Add variation types to the category (many-to-many)
+                foreach (var variationType in variationTypes)
                 {
-                    var addResult = category.AddVariationType(variationType.VariationTypeId, variationType.IsRequired);
+                    var addResult = category.AddVariationType(variationType);
                     if (addResult.IsFailure)
                         return Result.Failure<Guid>(addResult.Error);
                 }
@@ -78,4 +76,4 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Categories.Commands.CreateCateg
             }
         }
     }
-} 
+}

@@ -10,8 +10,9 @@ namespace Asp.Net9.Ecommerce.Application.Common.Interfaces.RepositoryInterfaces
         Task<bool> ExistsByIdAsync(Guid id, CancellationToken cancellationToken = default);
         Task<VariationType> GetByIdWithOptionsAsync(Guid id, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<VariationType>> GetAllAsync(CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<VariationType>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
         void Add(VariationType variationType);
         void Update(VariationType variationType);
         void Delete(VariationType variationType);
     }
-} 
+}

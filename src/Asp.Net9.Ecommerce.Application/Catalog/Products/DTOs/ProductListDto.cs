@@ -18,5 +18,6 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Queries.GetProducts
         // Status
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string Slug { get; set; }
     }
-} 
+}

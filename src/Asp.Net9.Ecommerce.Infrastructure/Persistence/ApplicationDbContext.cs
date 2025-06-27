@@ -1,4 +1,5 @@
 using Asp.Net9.Ecommerce.Domain.Catalog;
+using Asp.Net9.Ecommerce.Domain.Orders;
 using Asp.Net9.Ecommerce.Domain.Common;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +12,8 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence
         public DbSet<ProductVariant> ProductVariants { get; set; }
         public DbSet<VariationType> VariationTypes { get; set; }
         public DbSet<VariantOption> VariantOptions { get; set; }
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderItem> OrderItems { get; set; }
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
@@ -50,4 +53,4 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence
             return base.SaveChangesAsync(cancellationToken);
         }
     }
-} 
+}

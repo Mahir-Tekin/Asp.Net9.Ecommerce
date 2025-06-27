@@ -19,6 +19,8 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.CreateProduct
 
         // Images for the product
         public List<ProductImageInfo>? Images { get; init; }
+
+        // (Removed) Optional slug for the product
     }
 
     public record ProductImageInfo
@@ -38,4 +40,4 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.CreateProduct
         // Key: VariationTypeId, Value: VariantOptionId
         public Dictionary<Guid, Guid> SelectedOptions { get; init; } = new();
     }
-} 
+}

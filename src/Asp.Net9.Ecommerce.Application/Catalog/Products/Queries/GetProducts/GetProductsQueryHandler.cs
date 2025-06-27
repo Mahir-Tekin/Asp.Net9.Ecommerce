@@ -26,6 +26,7 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Queries.GetProducts
                 request.MaxPrice,
                 request.HasStock,
                 request.IsActive,
+                request.VariationFilters,
                 request.SortBy,
                 request.PageNumber,
                 request.PageSize,

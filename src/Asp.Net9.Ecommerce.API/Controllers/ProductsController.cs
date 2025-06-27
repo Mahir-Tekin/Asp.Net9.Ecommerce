@@ -1,9 +1,9 @@
-
 using Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.CreateProduct;
 using Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.UpdateProduct;
 using Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.DeleteProduct;
 using Asp.Net9.Ecommerce.Application.Catalog.Products.Queries.GetProductById;
 using Asp.Net9.Ecommerce.Application.Catalog.Products.Queries.GetProducts;
+using Asp.Net9.Ecommerce.Application.Catalog.Products.Queries.GetProductBySlug;
 using Asp.Net9.Ecommerce.Application.Catalog.Products.DTOs;
 using Asp.Net9.Ecommerce.API.Extensions;
 using Asp.Net9.Ecommerce.Shared.Results;
@@ -12,6 +12,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
+using System.Text.Json;
 
 namespace Asp.Net9.Ecommerce.API.Controllers
 {
@@ -44,6 +45,20 @@ namespace Asp.Net9.Ecommerce.API.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Paginated list of product summaries</returns>
         /// <response code="200">Returns the paginated list of products</response>
+        /// <remarks>
+        /// <para><strong>Dynamic Variation Filtering:</strong></para>
+        /// <para>You can filter by any variation type using query parameters. The system dynamically detects variation filters.</para>
+        /// <para><strong>Examples:</strong></para>
+        /// <list type="bullet">
+        /// <item>Filter by color: <c>?color=red,blue</c></item>
+        /// <item>Filter by size: <c>?size=M,L,XL</c></item>
+        /// <item>Filter by brand: <c>?brand=nike,adidas</c></item>
+        /// <item>Filter by material: <c>?material=cotton,silk</c></item>
+        /// <item>Multiple variations: <c>?color=red&amp;size=M,L&amp;material=cotton</c></item>
+        /// </list>
+        /// <para><strong>How it works:</strong> Any query parameter not in the standard list will be treated as a variation filter.</para>
+        /// <para><strong>Discovery:</strong> Use <c>GET /api/categories/{id}/filters</c> to discover available variation types and options for a specific category.</para>
+        /// </remarks>
         [HttpGet]
         [ProducesResponseType(typeof(ProductListResponse), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAll(
@@ -58,6 +73,9 @@ namespace Asp.Net9.Ecommerce.API.Controllers
             [FromQuery] int pageSize = 10,
             CancellationToken cancellationToken = default)
         {
+            // Parse variation filters from query parameters
+            var variationFilters = ParseVariationFiltersFromQuery();
+
             var query = new GetProductsQuery
             {
                 SearchTerm = searchTerm,
@@ -66,12 +84,71 @@ namespace Asp.Net9.Ecommerce.API.Controllers
                 MaxPrice = maxPrice,
                 HasStock = hasStock,
                 IsActive = isActive,
+                VariationFilters = variationFilters,
                 SortBy = sortBy,
                 PageNumber = pageNumber,
                 PageSize = pageSize
             };
-
+                var allParams = Request.Query.ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
+    Console.WriteLine($"Request params: {string.Join(", ", allParams.Select(kv => $"{kv.Key}={kv.Value}"))}");
             var result = await _mediator.Send(query, cancellationToken);
+            return result.ToActionResult();
+        }
+
+        private List<VariationFilter>? ParseVariationFiltersFromQuery()
+        {
+            var variationFilters = new List<VariationFilter>();
+            
+            // Get all query parameters that are not standard parameters
+            var standardParams = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "searchTerm", "categoryId", "minPrice", "maxPrice", 
+                "hasStock", "isActive", "sortBy", "pageNumber", "pageSize"
+                // Note: color, size, brand are intentionally NOT in this list 
+                // so they get processed as variation filters
+            };
+
+            foreach (var param in Request.Query)
+            {
+                if (!standardParams.Contains(param.Key))
+                {
+                    // This is likely a variation filter (e.g., color=red,blue)
+                    var variationTypeName = param.Key;
+                    var optionValues = param.Value.ToString().Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                                              .Select(v => v.Trim())
+                                                              .Where(v => !string.IsNullOrEmpty(v))
+                                                              .ToList();
+
+                    if (optionValues.Any())
+                    {
+                        variationFilters.Add(new VariationFilter
+                        {
+                            VariationTypeName = variationTypeName,
+                            OptionValues = optionValues
+                        });
+                    }
+                }
+            }
+
+            return variationFilters.Any() ? variationFilters : null;
+        }
+
+        /// <summary>
+        /// Advanced product search with complex filtering (alternative to GET with JSON body support)
+        /// </summary>
+        /// <param name="request">The search request with all filter options</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Paginated list of product summaries</returns>
+        /// <response code="200">Returns the paginated list of products</response>
+        /// <remarks>
+        /// Use this endpoint when you need to send complex filter objects or prefer JSON body over query parameters.
+        /// For simple filtering, use the GET endpoint instead.
+        /// </remarks>
+        [HttpPost("search")]
+        [ProducesResponseType(typeof(ProductListResponse), StatusCodes.Status200OK)]
+        public async Task<IActionResult> Search([FromBody] GetProductsQuery request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
             return result.ToActionResult();
         }
 
@@ -218,5 +295,22 @@ namespace Asp.Net9.Ecommerce.API.Controllers
             var url = $"/images/products/{fileName}";
             return Ok(url);
         }
+
+        /// <summary>
+        /// Gets a product by slug (for SEO-friendly URLs)
+        /// </summary>
+        /// <param name="slug">The slug of the product</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>The product details</returns>
+        /// <response code="200">Returns the product details</response>
+        /// <response code="404">If the product was not found</response>
+        [HttpGet("slug/{slug}")]
+        [ProducesResponseType(typeof(ProductDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetBySlug(string slug, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(new GetProductBySlugQuery(slug), cancellationToken);
+            return result.ToActionResult();
+        }
     }
-} 
+}

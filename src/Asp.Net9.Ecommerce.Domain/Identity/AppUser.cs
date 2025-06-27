@@ -22,6 +22,10 @@ namespace Asp.Net9.Ecommerce.Domain.Identity
         private readonly List<RefreshToken> _refreshTokens = new();
         public IReadOnlyCollection<RefreshToken> RefreshTokens => _refreshTokens.AsReadOnly();
 
+        // Address collection
+        private readonly List<Address> _addresses = new();
+        public IReadOnlyCollection<Address> Addresses => _addresses.AsReadOnly();
+
         // Protected constructor for EF Core
         protected AppUser() { }
 
@@ -135,6 +139,45 @@ namespace Asp.Net9.Ecommerce.Domain.Identity
             return Result.Success();
         }
 
+        // Add address (first address is main, others are not)
+        public Result AddAddress(Address address)
+        {
+            // If this is the first non-deleted address, set as main
+            if (!_addresses.Any(a => !a.IsDeleted))
+            {
+                address.SetAsMain();
+            }
+            _addresses.Add(address);
+            // Ensure only one main address
+            if (address.IsMain)
+            {
+                foreach (var addr in _addresses.Where(a => a.Id != address.Id))
+                    addr.UnsetAsMain();
+            }
+            return Result.Success();
+        }
+
+        // Remove address (soft delete)
+        public Result RemoveAddress(Guid addressId)
+        {
+            var address = _addresses.FirstOrDefault(a => a.Id == addressId && !a.IsDeleted);
+            if (address == null)
+                return Result.Failure(ErrorResponse.NotFound("Address not found"));
+            return address.SoftDelete();
+        }
+
+        // Set main address
+        public Result SetMainAddress(Guid addressId)
+        {
+            var address = _addresses.FirstOrDefault(a => a.Id == addressId && !a.IsDeleted);
+            if (address == null)
+                return Result.Failure(ErrorResponse.NotFound("Address not found"));
+            foreach (var addr in _addresses)
+                addr.UnsetAsMain();
+            address.SetAsMain();
+            return Result.Success();
+        }
+
         private static bool IsValidEmail(string email)
         {
             try
@@ -154,4 +197,4 @@ namespace Asp.Net9.Ecommerce.Domain.Identity
             return Regex.IsMatch(phoneNumber, @"^\+?[\d\s-]{8,}$");
         }
     }
-} 
+}

@@ -17,9 +17,8 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
         private readonly List<Category> _subCategories = new();
         public IReadOnlyCollection<Category> SubCategories => _subCategories.AsReadOnly();
 
-        // Variation types
-        private readonly List<CategoryVariationType> _variationTypes = new();
-        public IReadOnlyCollection<CategoryVariationType> VariationTypes => _variationTypes.AsReadOnly();
+        // Navigation property for many-to-many with VariationType
+        public ICollection<VariationType> VariationTypes { get; private set; } = new List<VariationType>();
 
         protected Category() { } // For EF Core
 
@@ -104,71 +103,37 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             _subCategories.Add(subCategory);
         }
 
+        public Result AddVariationType(VariationType variationType)
+        {
+            if (variationType == null)
+                return Result.Failure(ErrorResponse.ValidationError(new List<ValidationError> { new("VariationType", "Variation type is required") }));
+
+            if (VariationTypes.Any(vt => vt.Id == variationType.Id))
+                return Result.Failure(ErrorResponse.ValidationError(new List<ValidationError> { new("VariationType", "This variation type is already added") }));
+
+            VariationTypes.Add(variationType);
+            return Result.Success();
+        }
+
+        public Result UpdateVariationTypes(IEnumerable<VariationType> variationTypes)
+        {
+            if (variationTypes == null)
+                return Result.Failure(ErrorResponse.ValidationError(new List<ValidationError> { new("VariationTypes", "Variation types are required") }));
+
+            VariationTypes.Clear();
+            foreach (var variationType in variationTypes)
+            {
+                if (VariationTypes.Any(vt => vt.Id == variationType.Id))
+                    return Result.Failure(ErrorResponse.ValidationError(new List<ValidationError> { new("VariationType", $"Duplicate variation type: {variationType.Name}") }));
+                VariationTypes.Add(variationType);
+            }
+            return Result.Success();
+        }
+
         private bool IsInHierarchy(Guid categoryId)
         {
             if (Id == categoryId) return true;
             return _subCategories.Any(sc => sc.IsInHierarchy(categoryId));
-        }
-
-        public Result AddVariationType(Guid variationTypeId, bool isRequired)
-        {
-            if (_variationTypes.Any(vt => vt.VariationTypeId == variationTypeId))
-                return Result.Failure(ErrorResponse.ValidationError(
-                    new List<ValidationError> { new("VariationType", "This variation type is already added") }));
-
-            var variationTypeResult = CategoryVariationType.Create(variationTypeId, isRequired);
-            if (variationTypeResult.IsFailure)
-                return Result.Failure(variationTypeResult.Error);
-
-            _variationTypes.Add(variationTypeResult.Value);
-            return Result.Success();
-        }
-
-        public Result RemoveVariationType(Guid variationTypeId)
-        {
-            var variationType = _variationTypes.FirstOrDefault(vt => vt.VariationTypeId == variationTypeId);
-            if (variationType == null)
-                return Result.NotFound("Variation type not found");
-
-            _variationTypes.Remove(variationType);
-            return Result.Success();
-        }
-
-        public IReadOnlyCollection<CategoryVariationType> GetEffectiveVariationTypes()
-        {
-            var variations = new List<CategoryVariationType>();
-            
-            // Add parent variations if exists
-            if (ParentCategory != null)
-            {
-                variations.AddRange(ParentCategory.GetEffectiveVariationTypes());
-            }
-            
-            // Add this category's variations
-            variations.AddRange(_variationTypes);
-            
-            return variations;
-        }
-
-        public Result UpdateVariationTypes(List<CategoryVariationType> variationTypes)
-        {
-            // Clear existing variation types
-            _variationTypes.Clear();
-
-            // Add new variation types
-            foreach (var variationType in variationTypes)
-            {
-                if (_variationTypes.Any(vt => vt.VariationTypeId == variationType.VariationTypeId))
-                    return Result.Failure(ErrorResponse.ValidationError(
-                        new List<ValidationError> { new("VariationType", "Duplicate variation type found") }));
-
-                _variationTypes.Add(variationType);
-            }
-
-            // Add domain event
-            AddDomainEvent(new CategoryVariationTypesUpdatedEvent(Id, variationTypes.Select(vt => vt.VariationTypeId).ToList()));
-
-            return Result.Success();
         }
 
         private static List<ValidationError> ValidateInputs(string name, string description, string slug)
@@ -198,4 +163,4 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             return slug.All(c => char.IsLetterOrDigit(c) || c == '-');
         }
     }
-} 
+}

@@ -10,6 +10,7 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
         public string? Name { get; private set; }
         public string? Description { get; private set; }
         public Guid CategoryId { get; private set; }
+        public string Slug { get; private set; } = string.Empty;
 
         // Pricing
         public decimal BasePrice { get; private set; }
@@ -76,6 +77,7 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
         /// <param name="variantTypes">List of VariationType entities (must be loaded by handler)</param>
         /// <param name="variantData">List of VariantData (raw variant info from handler/DTO)</param>
         /// <param name="images">Optional images for the product</param>
+        /// <param name="slug">Optional slug for the product</param>
         /// <returns>Result containing the created Product or validation errors</returns>
         public static Result<Product> Create(
             string name,
@@ -84,10 +86,15 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             Guid categoryId,
             IEnumerable<VariationType>? variantTypes,
             IEnumerable<VariantData> variantData,
-            IEnumerable<ImageData>? images = null)
+            IEnumerable<ImageData>? images = null,
+            string? slug = null)
         {
             // 1. Validate basic product info
             var errors = ValidateInputs(name, description, basePrice);
+            // Slug validation
+            var generatedSlug = GenerateSlug(slug ?? name);
+            if (string.IsNullOrWhiteSpace(generatedSlug))
+                errors.Add(new ValidationError("Slug", "Slug is required and could not be generated."));
             if (errors.Any())
                 return Result.Failure<Product>(ErrorResponse.ValidationError(errors));
 
@@ -104,7 +111,8 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
                 Description = description!.Trim(),
                 BasePrice = basePrice,
                 CategoryId = categoryId,
-                IsActive = true
+                IsActive = true,
+                Slug = generatedSlug
             };
 
 
@@ -237,7 +245,7 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             Name = name.Trim();
             Description = description?.Trim();
 
-            AddDomainEvent(new ProductUpdatedEvent(Id, Name, _variants.First().SKU));
+            AddDomainEvent(new ProductUpdatedEvent(Id, Name, Slug));
 
             return Result.Success();
         }
@@ -363,5 +371,29 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
 
             return errors;
         }
+
+        public static string GenerateSlug(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+            // Normalize Turkish characters
+            var normalized = value
+                .Replace("ç", "c").Replace("Ç", "c")
+                .Replace("ğ", "g").Replace("Ğ", "g")
+                .Replace("ı", "i"). Replace("I", "i")
+                .Replace("ö", "o").Replace("Ö", "o")
+                .Replace("ş", "s").Replace("Ş", "s")
+                .Replace("ü", "u").Replace("Ü", "u");
+            var slug = normalized.ToLowerInvariant()
+                .Replace(" ", "-")
+                .Replace("--", "-")
+                .Replace("/", "-")
+                .Replace("\\", "-")
+                .Replace("_", "-");
+            // Remove invalid chars
+            slug = new string(slug.Where(c => char.IsLetterOrDigit(c) || c == '-').ToArray());
+            // Remove leading/trailing hyphens
+            slug = slug.Trim('-');
+            return slug;
+        }
     }
-} 
+}

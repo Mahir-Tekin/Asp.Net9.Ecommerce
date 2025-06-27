@@ -43,6 +43,13 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.CreateProduct
                         return Result.Failure<Guid>(ErrorResponse.ValidationError(new List<ValidationError> { new("SKU", $"A product with SKU '{variant.SKU}' already exists") }));
                 }
 
+                // 4.1. Check if slug already exists
+                var slugToCheck = Product.GenerateSlug(request.Name);
+                if (await _unitOfWork.Products.ExistsBySlugAsync(slugToCheck, cancellationToken))
+                {
+                    return Result.Failure<Guid>(ErrorResponse.ValidationError(new List<ValidationError> { new("Slug", $"A product with slug '{slugToCheck}' already exists") }));
+                }
+
                 // 5. Load variant types and options by ID
                 var variantTypes = new List<VariationType>();
                 var variantTypeDict = new Dictionary<Guid, VariationType>();
@@ -108,7 +115,8 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.CreateProduct
                         Url = img.Url,
                         AltText = img.AltText,
                         IsMain = img.IsMain
-                    }).ToList()
+                    }).ToList(),
+                    null // always generate slug from name
                 );
 
                 if (productResult.IsFailure)
@@ -148,4 +156,4 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.CreateProduct
             }
         }
     }
-} 
+}

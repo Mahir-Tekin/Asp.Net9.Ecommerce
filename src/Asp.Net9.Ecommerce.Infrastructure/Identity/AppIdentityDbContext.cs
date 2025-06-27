@@ -12,6 +12,8 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Identity
         {
         }
 
+        public DbSet<Address> Addresses { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -36,14 +38,19 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Identity
                 {
                     rt.ToTable("UserRefreshTokens");
                     rt.WithOwner(t => t.User).HasForeignKey(t => t.UserId);
-                    
-                    // Composite key of UserId and Token
                     rt.HasKey(t => new { t.UserId, t.Token });
-
                     rt.Property(t => t.Token).IsRequired();
                     rt.Property(t => t.ExpiresOnUtc).IsRequired();
                 });
+
+                // Configure Addresses as one-to-many
+                entity.HasMany(e => e.Addresses)
+                      .WithOne()
+                      .HasForeignKey(a => a.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
+
+            builder.Entity<Address>().ToTable("UserAddresses");
 
             // Configure AppRole
             builder.Entity<AppRole>(entity =>
@@ -56,4 +63,4 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Identity
             builder.Entity<AppRole>().HasData(AppRoles.DefaultRoles);
         }
     }
-} 
+}

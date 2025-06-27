@@ -52,6 +52,13 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
+        public async Task<IReadOnlyList<VariationType>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
+        {
+            return await _context.VariationTypes
+                .Where(vt => ids.Contains(vt.Id) && vt.DeletedAt == null)
+                .ToListAsync(cancellationToken);
+        }
+
         public void Add(VariationType variationType)
         {
             _context.VariationTypes.Add(variationType);
@@ -68,4 +75,4 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
             _context.VariationTypes.Update(variationType);
         }
     }
-} 
+}

@@ -11,6 +11,9 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
 
         public ICollection<VariantOption> Options { get; private set; } = new List<VariantOption>();
 
+        // Navigation property for many-to-many with Category
+        public ICollection<Category> Categories { get; private set; } = new List<Category>();
+
         protected VariationType() { } // For EF Core
 
         public static Result<VariationType> Create(string name, string displayName)
@@ -127,4 +130,4 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             return errors;
         }
     }
-} 
+}

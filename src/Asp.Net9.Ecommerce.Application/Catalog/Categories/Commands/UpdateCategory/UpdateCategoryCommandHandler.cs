@@ -46,11 +46,13 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Categories.Commands.UpdateCateg
                     return updateResult;
 
                 // Update variation types
-                var updateVariationTypesResult = category.UpdateVariationTypes(
-                    request.VariationTypes.Select(vt => 
-                        CategoryVariationType.Create(vt.VariationTypeId, vt.IsRequired).Value)
-                    .ToList());
-
+                var variationTypeIds = request.VariationTypes.Select(vt => vt.VariationTypeId).ToList();
+                var variationTypes = await _unitOfWork.VariationTypes.GetByIdsAsync(variationTypeIds, cancellationToken);
+                if (variationTypes.Count != variationTypeIds.Count)
+                {
+                    return Result.Failure(ErrorResponse.NotFound("One or more variation types not found"));
+                }
+                var updateVariationTypesResult = category.UpdateVariationTypes(variationTypes);
                 if (updateVariationTypesResult.IsFailure)
                     return updateVariationTypesResult;
 
@@ -74,4 +76,4 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Categories.Commands.UpdateCateg
             }
         }
     }
-} 
+}

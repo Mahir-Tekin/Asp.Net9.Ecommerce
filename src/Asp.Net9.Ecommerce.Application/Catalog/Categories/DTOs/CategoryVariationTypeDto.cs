@@ -1,3 +1,7 @@
+
+
+using Asp.Net9.Ecommerce.Application.Catalog.VariationTypes.DTOs;
+
 namespace Asp.Net9.Ecommerce.Application.Catalog.Categories.DTOs
 {
     /// <summary>
@@ -16,5 +20,16 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Categories.DTOs
         /// </summary>
         /// <example>true</example>
         public bool IsRequired { get; set; }
+
+        /// <summary>
+        /// The name of the variation type
+        /// </summary>
+        /// <example>Color</example>
+        public string Name { get; set; }
+
+        /// <summary>
+        /// The list of options for this variation type
+        /// </summary>
+        public List<VariantOptionDto> Options { get; set; } = new();
     }
-} 
+}

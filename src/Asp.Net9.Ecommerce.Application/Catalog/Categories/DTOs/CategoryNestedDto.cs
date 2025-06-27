@@ -1,5 +1,6 @@
-using Asp.Net9.Ecommerce.Shared.Results;
+
 using System.ComponentModel.DataAnnotations;
+using Asp.Net9.Ecommerce.Application.Catalog.VariationTypes.DTOs;
 
 namespace Asp.Net9.Ecommerce.Application.Catalog.Categories.DTOs
 {
@@ -68,6 +69,6 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Categories.DTOs
         /// <summary>
         /// The variation types associated with this category
         /// </summary>
-        public List<CategoryVariationTypeDto> VariationTypes { get; set; } = new();
+        public List<VariationTypeDto> VariationTypes { get; set; } = new();
     }
-} 
+}

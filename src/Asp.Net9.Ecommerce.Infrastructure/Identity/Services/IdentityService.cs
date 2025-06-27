@@ -236,5 +236,59 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Identity.Services
 
             return Result.Success();
         }
+
+        public async Task<Result<Guid>> AddAddressAsync(
+            Guid userId,
+            string firstName,
+            string lastName,
+            string phoneNumber,
+            string city,
+            string district,
+            string neighborhood,
+            string addressLine,
+            string addressTitle,
+            CancellationToken cancellationToken = default)
+        {
+            var user = await _context.Users
+                .Include(u => u.Addresses)
+                .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+
+            if (user == null)
+                return Result.Failure<Guid>(ErrorResponse.NotFound("User not found"));
+
+            var addressResult = Domain.Identity.Address.Create(
+                userId,
+                firstName,
+                lastName,
+                phoneNumber,
+                city,
+                district,
+                neighborhood,
+                addressLine,
+                addressTitle
+            );
+
+            if (addressResult.IsFailure)
+                return Result.Failure<Guid>(addressResult.Error);
+
+            var address = addressResult.Value;
+            var addResult = user.AddAddress(address);
+            if (!addResult.IsSuccess)
+                return Result.Failure<Guid>(addResult.Error);
+
+            // Ensure the new address is tracked as Added
+            _context.Entry(address).State = EntityState.Added;
+
+
+            await _context.SaveChangesAsync(cancellationToken);
+            return Result.Success(address.Id);
+        }
+
+        public async Task<List<Address>> GetAddressesByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+        {
+            return await _context.Set<Address>()
+                .Where(a => a.UserId == userId && a.DeletedAt == null)
+                .ToListAsync(cancellationToken);
+        }
     }
-} 
+}

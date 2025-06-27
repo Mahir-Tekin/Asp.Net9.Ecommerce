@@ -20,9 +20,13 @@ const AdminSidebar = () => {
                    className="group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50">
                     Variation Types
                 </a>
+                <a href="/admin/orders" 
+                   className="group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50">
+                    Orders
+                </a>
             </nav>
         </aside>
     );
 };
 
-export default AdminSidebar; 
+export default AdminSidebar;

@@ -31,6 +31,9 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
         // Navigation property
         public Product? Product { get; private set; }
 
+        // RowVersion property for optimistic concurrency control
+        public byte[] RowVersion { get; set; }
+
         protected ProductVariant() { } // For EF Core
 
         public static Result<ProductVariant> Create(
@@ -217,6 +220,21 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
 
             Name = name.Trim();
             return Result.Success();
+        }
+
+        /// <summary>
+        /// Decreases the stock by the specified quantity. Throws if not enough stock.
+        /// </summary>
+        /// <param name="quantity">The quantity to decrease.</param>
+        public void DecreaseStock(int quantity)
+        {
+            if (!TrackInventory)
+                throw new InvalidOperationException("This variant does not track inventory.");
+            if (quantity <= 0)
+                throw new ArgumentOutOfRangeException(nameof(quantity), "Quantity must be positive.");
+            if (_stockQuantity < quantity)
+                throw new InvalidOperationException($"Not enough stock. Available: {_stockQuantity}, requested: {quantity}");
+            _stockQuantity -= quantity;
         }
 
         private static List<ValidationError> ValidateInputs(string sku, string name, decimal? price, int minStockThreshold)

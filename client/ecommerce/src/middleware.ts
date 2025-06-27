@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Define path configurations
-const PUBLIC_PATHS = ['/', '/login', '/register'];
+const PUBLIC_PATHS = ['/', '/login', '/register','/cart'];
+const PUBLIC_DYNAMIC_PATHS = [/^\/product\/[^/]+$/]; // Add dynamic product details route
 const ADMIN_PATHS = ['/admin', '/admin/dashboard'];
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api';
 
@@ -11,6 +12,7 @@ export async function middleware(request: NextRequest) {
     
     // Check if current path is public or admin
     const isPublicPath = PUBLIC_PATHS.includes(path) || 
+                        PUBLIC_DYNAMIC_PATHS.some((re) => re.test(path)) ||
                         path.startsWith('/api') || 
                         path.startsWith('/_next') ||
                         path === '/favicon.ico';
@@ -95,4 +97,4 @@ export const config = {
          */
         '/((?!api|_next/static|_next/image|favicon.ico).*)',
     ],
-} 
+}

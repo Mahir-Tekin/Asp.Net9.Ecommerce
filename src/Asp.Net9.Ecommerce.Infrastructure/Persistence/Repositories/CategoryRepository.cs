@@ -95,7 +95,8 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
             return await _context.Categories
                 .Include(c => c.SubCategories)
                 .Include(c => c.VariationTypes)
+                    .ThenInclude(vt => vt.Options)
                 .FirstOrDefaultAsync(c => c.Id == id && c.DeletedAt == null, cancellationToken);
         }
     }
-} 
+}

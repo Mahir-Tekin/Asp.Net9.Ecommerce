@@ -16,6 +16,9 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Queries.GetProducts
         public bool? HasStock { get; init; }
         public bool? IsActive { get; init; }
         
+        // Variation Filtering
+        public List<VariationFilter>? VariationFilters { get; init; }
+        
         // Sorting
         public ProductSortBy SortBy { get; init; } = ProductSortBy.CreatedAtDesc;
         
@@ -26,8 +29,6 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Queries.GetProducts
 
     public enum ProductSortBy
     {
-        NameAsc,
-        NameDesc,
         PriceAsc,
         PriceDesc,
         CreatedAtAsc,

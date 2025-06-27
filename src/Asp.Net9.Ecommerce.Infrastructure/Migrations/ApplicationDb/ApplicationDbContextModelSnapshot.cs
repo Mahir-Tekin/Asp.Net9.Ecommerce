@@ -101,6 +101,11 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Migrations.ApplicationDb
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -113,6 +118,9 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Migrations.ApplicationDb
                     b.HasIndex("IsActive");
 
                     b.HasIndex("Name");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
 
                     b.HasIndex("IsActive", "DeletedAt");
 
@@ -186,6 +194,12 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Migrations.ApplicationDb
 
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<string>("SKU")
                         .IsRequired()
@@ -311,6 +325,107 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Migrations.ApplicationDb
                     b.ToTable("VariationTypes");
                 });
 
+            modelBuilder.Entity("Asp.Net9.Ecommerce.Domain.Orders.Order", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Orders");
+                });
+
+            modelBuilder.Entity("Asp.Net9.Ecommerce.Domain.Orders.OrderItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ProductSlug")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("ProductVariantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("VariantName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("OrderItems");
+                });
+
+            modelBuilder.Entity("CategoryVariationType", b =>
+                {
+                    b.Property<Guid>("CategoriesId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("VariationTypesId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("CategoriesId", "VariationTypesId");
+
+                    b.HasIndex("VariationTypesId");
+
+                    b.ToTable("CategoryVariationTypes", (string)null);
+                });
+
             modelBuilder.Entity("ProductVariantVariantOption", b =>
                 {
                     b.Property<Guid>("ProductVariantId")
@@ -348,34 +463,7 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Migrations.ApplicationDb
                         .HasForeignKey("ParentCategoryId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.OwnsMany("Asp.Net9.Ecommerce.Domain.Catalog.CategoryVariationType", "VariationTypes", b1 =>
-                        {
-                            b1.Property<Guid>("CategoryId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<int>("__synthesizedOrdinal")
-                                .ValueGeneratedOnAdd()
-                                .HasColumnType("int");
-
-                            b1.Property<bool>("IsRequired")
-                                .HasColumnType("bit");
-
-                            b1.Property<Guid>("VariationTypeId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.HasKey("CategoryId", "__synthesizedOrdinal");
-
-                            b1.ToTable("Categories");
-
-                            b1.ToJson("VariationTypes");
-
-                            b1.WithOwner()
-                                .HasForeignKey("CategoryId");
-                        });
-
                     b.Navigation("ParentCategory");
-
-                    b.Navigation("VariationTypes");
                 });
 
             modelBuilder.Entity("Asp.Net9.Ecommerce.Domain.Catalog.Product", b =>
@@ -420,6 +508,88 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Migrations.ApplicationDb
                         .IsRequired();
 
                     b.Navigation("VariationType");
+                });
+
+            modelBuilder.Entity("Asp.Net9.Ecommerce.Domain.Orders.Order", b =>
+                {
+                    b.OwnsOne("Asp.Net9.Ecommerce.Domain.Orders.OrderAddress", "ShippingAddress", b1 =>
+                        {
+                            b1.Property<Guid>("OrderId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("AddressLine")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("nvarchar(200)");
+
+                            b1.Property<string>("AddressTitle")
+                                .IsRequired()
+                                .HasMaxLength(50)
+                                .HasColumnType("nvarchar(50)");
+
+                            b1.Property<string>("City")
+                                .IsRequired()
+                                .HasMaxLength(100)
+                                .HasColumnType("nvarchar(100)");
+
+                            b1.Property<string>("District")
+                                .IsRequired()
+                                .HasMaxLength(100)
+                                .HasColumnType("nvarchar(100)");
+
+                            b1.Property<string>("FirstName")
+                                .IsRequired()
+                                .HasMaxLength(100)
+                                .HasColumnType("nvarchar(100)");
+
+                            b1.Property<string>("LastName")
+                                .IsRequired()
+                                .HasMaxLength(100)
+                                .HasColumnType("nvarchar(100)");
+
+                            b1.Property<string>("Neighborhood")
+                                .IsRequired()
+                                .HasMaxLength(100)
+                                .HasColumnType("nvarchar(100)");
+
+                            b1.Property<string>("PhoneNumber")
+                                .IsRequired()
+                                .HasMaxLength(15)
+                                .HasColumnType("nvarchar(15)");
+
+                            b1.HasKey("OrderId");
+
+                            b1.ToTable("Orders");
+
+                            b1.WithOwner()
+                                .HasForeignKey("OrderId");
+                        });
+
+                    b.Navigation("ShippingAddress")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Asp.Net9.Ecommerce.Domain.Orders.OrderItem", b =>
+                {
+                    b.HasOne("Asp.Net9.Ecommerce.Domain.Orders.Order", null)
+                        .WithMany("Items")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("CategoryVariationType", b =>
+                {
+                    b.HasOne("Asp.Net9.Ecommerce.Domain.Catalog.Category", null)
+                        .WithMany()
+                        .HasForeignKey("CategoriesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Asp.Net9.Ecommerce.Domain.Catalog.VariationType", null)
+                        .WithMany()
+                        .HasForeignKey("VariationTypesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("ProductVariantVariantOption", b =>
@@ -467,6 +637,11 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Migrations.ApplicationDb
             modelBuilder.Entity("Asp.Net9.Ecommerce.Domain.Catalog.VariationType", b =>
                 {
                     b.Navigation("Options");
+                });
+
+            modelBuilder.Entity("Asp.Net9.Ecommerce.Domain.Orders.Order", b =>
+                {
+                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

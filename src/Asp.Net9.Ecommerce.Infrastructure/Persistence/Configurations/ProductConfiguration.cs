@@ -31,6 +31,11 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Configurations
             builder.Property(p => p.IsActive)
                 .IsRequired();
 
+            // Slug
+            builder.Property(p => p.Slug)
+                .HasMaxLength(200)
+                .IsRequired();
+
             // Relationships
             builder.HasOne(p => p.Category)
                 .WithMany()
@@ -59,6 +64,7 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Configurations
             builder.HasIndex(p => p.IsActive);
             builder.HasIndex(p => p.BasePrice); // Add index for price queries
             builder.HasIndex(p => new { p.IsActive, p.DeletedAt }); // Composite index for active products
+            builder.HasIndex(p => p.Slug).IsUnique();
         }
     }
-} 
+}
