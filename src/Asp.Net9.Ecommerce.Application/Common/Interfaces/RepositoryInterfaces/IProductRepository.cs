@@ -34,5 +34,24 @@ namespace Asp.Net9.Ecommerce.Application.Common.Interfaces.RepositoryInterfaces
             CancellationToken cancellationToken = default);
 
         Task<List<ProductVariant>> GetVariantsByIdsAsync(IEnumerable<Guid> variantIds, CancellationToken cancellationToken = default);
+        Task<bool> HasUserReviewedProductAsync(Guid userId, Guid productId, CancellationToken cancellationToken = default);
+        Task<Product?> GetByIdWithReviewsAsync(Guid id, CancellationToken cancellationToken = default);
+        Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default);
+        
+        // Review-related methods
+        Task AddReviewAsync(ProductReview review, CancellationToken cancellationToken = default);
+        Task<(IEnumerable<ProductReview> Reviews, int TotalCount, double AverageRating, ReviewRatingSummary RatingSummary)> 
+            GetProductReviewsAsync(
+                Guid productId,
+                ReviewSortBy sortBy,
+                int pageNumber,
+                int pageSize,
+                CancellationToken cancellationToken = default);
+
+        // Vote-related methods
+        Task<ReviewVote?> GetVoteByReviewAndUserAsync(Guid reviewId, Guid userId, CancellationToken cancellationToken = default);
+        Task AddVoteAsync(ReviewVote vote, CancellationToken cancellationToken = default);
+        Task UpdateVoteAsync(ReviewVote vote, CancellationToken cancellationToken = default);
+        Task RemoveVoteAsync(ReviewVote vote, CancellationToken cancellationToken = default);
     }
 }

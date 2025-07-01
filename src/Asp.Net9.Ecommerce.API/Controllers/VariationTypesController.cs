@@ -28,9 +28,9 @@ namespace Asp.Net9.Ecommerce.API.Controllers
         }
 
         /// <summary>
-        /// Retrieves all variation types
+        /// Retrieves all variation types with their options
         /// </summary>
-        /// <response code="200">Returns the list of variation types</response>
+        /// <response code="200">Returns the list of variation types with their options</response>
         /// <response code="401">User is not authenticated</response>
         /// <response code="403">User is not authorized</response>
         /// <response code="500">Internal server error</response>
@@ -47,10 +47,10 @@ namespace Asp.Net9.Ecommerce.API.Controllers
         }
 
         /// <summary>
-        /// Retrieves a specific variation type by ID
+        /// Retrieves a specific variation type by ID with its options
         /// </summary>
         /// <param name="id">The ID of the variation type</param>
-        /// <response code="200">Returns the requested variation type</response>
+        /// <response code="200">Returns the requested variation type with its options</response>
         /// <response code="401">User is not authenticated</response>
         /// <response code="403">User is not authorized</response>
         /// <response code="404">Variation type not found</response>
@@ -93,10 +93,21 @@ namespace Asp.Net9.Ecommerce.API.Controllers
         }
 
         /// <summary>
-        /// Updates an existing variation type
+        /// Updates an existing variation type and its options
         /// </summary>
         /// <param name="id">The ID of the variation type to update</param>
         /// <param name="request">The variation type update request</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <remarks>
+        /// <para><strong>Safe Option Update Strategy:</strong></para>
+        /// <list type="bullet">
+        /// <item>Options with IDs: Updates existing options (preserves relationships with product variants)</item>
+        /// <item>Options without IDs: Creates new options</item>
+        /// <item>Existing options: Are NOT automatically removed - they must be explicitly deleted via separate endpoints</item>
+        /// </list>
+        /// <para><strong>Important:</strong> This endpoint does NOT remove existing options to preserve product variant relationships. 
+        /// Options are critical because product variants depend on them. Use separate delete endpoints for option removal with proper validation.</para>
+        /// </remarks>
         /// <response code="200">Variation type updated successfully</response>
         /// <response code="400">Invalid request data</response>
         /// <response code="401">User is not authenticated</response>
@@ -124,6 +135,7 @@ namespace Asp.Net9.Ecommerce.API.Controllers
         /// Deletes a variation type
         /// </summary>
         /// <param name="id">The ID of the variation type to delete</param>
+        /// <param name="cancellationToken">Cancellation token</param>
         /// <response code="200">Variation type deleted successfully</response>
         /// <response code="401">User is not authenticated</response>
         /// <response code="403">User is not authorized</response>

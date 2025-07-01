@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useProductFilters } from '@/context/ProductFilterContext';
+import { useURLFilters } from '@/hooks/useURLFilters';
 import { fetchCategoryDetails, CategoryDetails, VariationType } from './CategoryDetails.api';
 
 const CategoryVariationFilters: React.FC = () => {
-  const { filters, setFilters } = useProductFilters();
+  const { filters, updateFilters } = useURLFilters();
   const [categoryDetails, setCategoryDetails] = useState<CategoryDetails | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -25,44 +25,31 @@ const CategoryVariationFilters: React.FC = () => {
     }
   }, [filters.categoryId]);
 
-  // Reset variation filters when category changes
-  useEffect(() => {
-    setFilters(prev => ({
-      ...prev,
-      variationFilters: {}
-    }));
-  }, [filters.categoryId, setFilters]);
-
   // Handle variation filter changes using variation type names and option values
   // This matches the backend API format: ?color=red,blue&size=M,L
 
   const handleVariationFilterChange = (variationTypeName: string, optionValue: string, checked: boolean) => {
-    setFilters(prev => {
-      const currentFilters = prev.variationFilters || {};
-      const currentOptions = currentFilters[variationTypeName] || [];
-      
-      let newOptions: string[];
-      if (checked) {
-        newOptions = [...currentOptions, optionValue];
-      } else {
-        newOptions = currentOptions.filter(value => value !== optionValue);
-      }
+    const currentFilters = filters.variationFilters || {};
+    const currentOptions = currentFilters[variationTypeName] || [];
+    
+    let newOptions: string[];
+    if (checked) {
+      newOptions = [...currentOptions, optionValue];
+    } else {
+      newOptions = currentOptions.filter((value: string) => value !== optionValue);
+    }
 
-      const newVariationFilters = {
-        ...currentFilters,
-        [variationTypeName]: newOptions
-      };
+    const newVariationFilters = {
+      ...currentFilters,
+      [variationTypeName]: newOptions
+    };
 
-      // Remove empty arrays to keep the object clean
-      if (newOptions.length === 0) {
-        delete newVariationFilters[variationTypeName];
-      }
+    // Remove empty arrays to keep the object clean
+    if (newOptions.length === 0) {
+      delete newVariationFilters[variationTypeName];
+    }
 
-      return {
-        ...prev,
-        variationFilters: newVariationFilters
-      };
-    });
+    updateFilters({ variationFilters: newVariationFilters });
   };
 
   if (!filters.categoryId) {
@@ -78,16 +65,15 @@ const CategoryVariationFilters: React.FC = () => {
   }
 
   return (
-    <div className="mb-4">
-      <h4 className="text-md font-medium mb-3">Category Filters</h4>
+    <div className="space-y-4">
       {categoryDetails.variationTypes.map((variationType: VariationType) => (
-        <div key={variationType.id} className="mb-4">
-          <h5 className="text-sm font-medium mb-2">{variationType.name}</h5>
+        <div key={variationType.id} className="border-b border-gray-200 pb-4 last:border-b-0">
+          <h5 className="text-sm font-semibold mb-3 text-gray-800">{variationType.name}</h5>
           <div className="space-y-2">
             {variationType.options.map((option) => {
               const isChecked = filters.variationFilters?.[variationType.name]?.includes(option.value) || false;
               return (
-                <label key={option.id} className="flex items-center space-x-2 text-sm">
+                <label key={option.id} className="flex items-center space-x-3 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded">
                   <input
                     type="checkbox"
                     checked={isChecked}
@@ -96,9 +82,9 @@ const CategoryVariationFilters: React.FC = () => {
                       option.value, 
                       e.target.checked
                     )}
-                    className="rounded border-gray-300"
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <span>{option.displayValue}</span>
+                  <span className="text-gray-700">{option.displayValue}</span>
                 </label>
               );
             })}

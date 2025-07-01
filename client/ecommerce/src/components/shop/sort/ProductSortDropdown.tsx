@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useProductFilters } from '@/context/ProductFilterContext';
+import { useURLFilters } from '@/hooks/useURLFilters';
 
 const sortOptions = [
   { value: '', label: 'Default' },
@@ -9,20 +9,19 @@ const sortOptions = [
   { value: 'PriceDesc', label: 'Price: High to Low' },
   { value: 'CreatedAtDesc', label: 'Newest First' },
   { value: 'CreatedAtAsc', label: 'Oldest First' },
+  { value: 'RatingDesc', label: 'Rating: High to Low' },
+  { value: 'RatingAsc', label: 'Rating: Low to High' },
 ];
 
 export default function ProductSortDropdown() {
-  const { filters, setFilters } = useProductFilters();
+  const { filters, updateFilters } = useURLFilters();
 
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setFilters((prev) => ({
-      ...prev,
-      sortBy: e.target.value,
-    }));
+    updateFilters({ sortBy: e.target.value });
   };
 
   return (
-    <div className="flex items-center gap-2 mb-4">
+    <div className="flex items-center gap-2">
       <label htmlFor="sort" className="text-sm font-medium text-gray-700">
         Sort by:
       </label>

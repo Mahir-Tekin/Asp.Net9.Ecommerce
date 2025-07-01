@@ -22,6 +22,15 @@ interface VariationType {
   id: string;
   name: string;
   displayName: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  options: Array<{
+    id: string;
+    value: string;
+    displayValue: string;
+    sortOrder: number;
+  }>;
 }
 
 interface Category {
@@ -46,7 +55,7 @@ export function CreateCategoryForm({ onCancel, onSuccess }: CreateCategoryFormPr
     variationTypes: []
   });
   const [variationTypes, setVariationTypes] = useState<VariationType[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<any[]>([]); // Accept nested categories
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
 
   useEffect(() => {
@@ -119,7 +128,7 @@ export function CreateCategoryForm({ onCancel, onSuccess }: CreateCategoryFormPr
         // Add to array
         updatedVariationTypes = [
           ...prev.variationTypes,
-          { variationTypeId, isRequired: false }
+          { variationTypeId, isRequired: true }
         ];
       } else {
         // Remove from array
@@ -130,6 +139,17 @@ export function CreateCategoryForm({ onCancel, onSuccess }: CreateCategoryFormPr
         variationTypes: updatedVariationTypes
       };
     });
+  };
+
+  const handleVariationTypeRequiredToggle = (variationTypeId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      variationTypes: prev.variationTypes.map(vt => 
+        vt.variationTypeId === variationTypeId 
+          ? { ...vt, isRequired: !vt.isRequired }
+          : vt
+      )
+    }));
   };
 
   return (
@@ -177,30 +197,88 @@ export function CreateCategoryForm({ onCancel, onSuccess }: CreateCategoryFormPr
             className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
             <option value="">Set as Root Category</option>
-            {categories.map(category => (
+            {/* Flatten categories for dropdown */}
+            {flattenCategories(categories).map(category => (
               <option key={category.id} value={category.id}>
-                {category.name}
+                {category.displayNameForDropdown}
               </option>
             ))}
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Variation Types
           </label>
-          <div className="flex flex-col gap-2">
-            {variationTypes.map((variation) => (
-              <label key={variation.id} className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={formData.variationTypes.some(v => v.variationTypeId === variation.id)}
-                  onChange={e => handleVariationTypeChange(variation.id, e.target.checked)}
-                />
-                {variation.displayName || variation.name}
-              </label>
-            ))}
+          <div className="space-y-3 max-h-64 overflow-y-auto border border-gray-200 rounded p-3">
+            {variationTypes
+              .filter(vt => vt.isActive) // Only show active variation types
+              .map((vt) => {
+                const isSelected = formData.variationTypes.some(v => v.variationTypeId === vt.id);
+                const selectedVt = formData.variationTypes.find(v => v.variationTypeId === vt.id);
+                
+                return (
+                  <div key={vt.id} className="border border-gray-100 rounded p-3">
+                    <div className="flex items-center mb-2">
+                      <input
+                        type="checkbox"
+                        id={`vt-${vt.id}`}
+                        checked={isSelected}
+                        onChange={e => handleVariationTypeChange(vt.id, e.target.checked)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <label htmlFor={`vt-${vt.id}`} className="ml-2 block text-sm font-medium text-gray-700">
+                        {vt.displayName || vt.name}
+                      </label>
+                      {vt.options && vt.options.length > 0 && (
+                        <span className="text-xs text-gray-500 ml-2">
+                          ({vt.options.length} options)
+                        </span>
+                      )}
+                    </div>
+                    
+                    {isSelected && (
+                      <div className="ml-6 flex items-center">
+                        <input
+                          type="checkbox"
+                          id={`vt-required-${vt.id}`}
+                          checked={selectedVt?.isRequired || false}
+                          onChange={() => handleVariationTypeRequiredToggle(vt.id)}
+                          className="h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <label htmlFor={`vt-required-${vt.id}`} className="ml-2 block text-xs text-gray-600">
+                          Required for products in this category
+                        </label>
+                      </div>
+                    )}
+                    
+                    {vt.options && vt.options.length > 0 && (
+                      <div className="ml-6 mt-2">
+                        <p className="text-xs text-gray-500 mb-1">Available options:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {vt.options.slice(0, 5).map(option => (
+                            <span 
+                              key={option.id} 
+                              className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded"
+                            >
+                              {option.displayValue || option.value}
+                            </span>
+                          ))}
+                          {vt.options.length > 5 && (
+                            <span className="text-xs text-gray-500">
+                              +{vt.options.length - 5} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
           </div>
+          <p className="text-xs text-gray-500 mt-1">
+            Select which variation types are available for products in this category. Mark as required if products must have this variation.
+          </p>
         </div>
 
         <div className="flex justify-end space-x-3 mt-6">
@@ -221,6 +299,22 @@ export function CreateCategoryForm({ onCancel, onSuccess }: CreateCategoryFormPr
       </form>
     </div>
   );
+}
+
+
+// Helper to flatten nested categories for dropdown
+function flattenCategories(categories: any[], prefix = ""): any[] {
+  let result: any[] = [];
+  for (const cat of categories) {
+    result.push({
+      ...cat,
+      displayNameForDropdown: prefix ? `${prefix} > ${cat.name}` : cat.name
+    });
+    if (cat.subCategories && cat.subCategories.length > 0) {
+      result = result.concat(flattenCategories(cat.subCategories, prefix ? `${prefix} > ${cat.name}` : cat.name));
+    }
+  }
+  return result;
 }
 
 export default CreateCategoryForm;

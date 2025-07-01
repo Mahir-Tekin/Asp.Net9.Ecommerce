@@ -10,6 +10,8 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence
         public DbSet<Category> Categories { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<ProductVariant> ProductVariants { get; set; }
+        public DbSet<ProductReview> ProductReviews { get; set; }
+        public DbSet<ReviewVote> ReviewVotes { get; set; }
         public DbSet<VariationType> VariationTypes { get; set; }
         public DbSet<VariantOption> VariantOptions { get; set; }
         public DbSet<Order> Orders { get; set; }

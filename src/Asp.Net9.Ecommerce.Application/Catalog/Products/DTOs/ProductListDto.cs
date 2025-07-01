@@ -13,7 +13,9 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Queries.GetProducts
         public bool HasStock { get; set; }
         public int TotalStock { get; set; }
 
-        // Variants
+        // Review statistics
+        public decimal AverageRating { get; set; }
+        public int ReviewCount { get; set; }
 
         // Status
         public bool IsActive { get; set; }

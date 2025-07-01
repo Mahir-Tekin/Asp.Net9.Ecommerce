@@ -146,11 +146,17 @@ export default function ProductList({ onSelect, onCreate }: ProductListProps) {
                   <tr key={product.id} className="hover:bg-gray-50 cursor-pointer">
                     <td className="border px-2 py-1">
                       {product.mainImage ? (
-                        <img
-                          src={product.mainImage}
-                          alt={product.name}
-                          style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4 }}
-                        />
+                        (() => {
+                          const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
+                          const src = product.mainImage.startsWith('http') ? product.mainImage : `${API_URL}${product.mainImage}`;
+                          return (
+                            <img
+                              src={src}
+                              alt={product.name}
+                              style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4 }}
+                            />
+                          );
+                        })()
                       ) : (
                         <div style={{ width: 48, height: 48 }} className="bg-gray-200 flex items-center justify-center rounded text-gray-400">-</div>
                       )}

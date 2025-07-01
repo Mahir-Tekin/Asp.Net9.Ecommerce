@@ -6,16 +6,17 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.VariationTypes.Commands.UpdateV
     public record UpdateVariationTypeCommand : IRequest<Result>
     {
         public Guid Id { get; init; }
-        public string Name { get; init; }
-        public string DisplayName { get; init; }
+        public required string Name { get; init; }
+        public required string DisplayName { get; init; }
         public bool IsActive { get; init; }
         public List<VariationOptionUpdateInfo> Options { get; init; } = new();
     }
 
     public record VariationOptionUpdateInfo
     {
-        public string Value { get; init; }
-        public string DisplayValue { get; init; }
+        public Guid? Id { get; init; } // Null for new options, set for existing options to update
+        public required string Value { get; init; }
+        public required string DisplayValue { get; init; }
         public int SortOrder { get; init; }
     }
 } 

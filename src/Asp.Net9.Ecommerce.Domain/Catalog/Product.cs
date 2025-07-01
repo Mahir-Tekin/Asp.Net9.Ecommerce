@@ -27,10 +27,18 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
         // Status
         public bool IsActive { get; private set; }
 
+        // Review Statistics (computed fields for performance)
+        public decimal AverageRating { get; private set; }
+        public int ReviewCount { get; private set; }
+
         // Navigation properties
         public Category? Category { get; private set; }
         private readonly List<ProductVariant> _variants = new();
         public IReadOnlyCollection<ProductVariant> Variants => _variants.AsReadOnly();
+
+        // Reviews
+        private readonly List<ProductReview> _reviews = new();
+        public IReadOnlyCollection<ProductReview> Reviews => _reviews.AsReadOnly();
 
         protected Product() { } // For EF Core
 
@@ -352,6 +360,100 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             }
 
             return Result.Success();
+        }
+
+        // Review Management Methods
+        public Result<ProductReview> AddReview(Guid userId, int rating, string? title = null, string? comment = null)
+        {
+            var reviewResult = ProductReview.Create(Id, userId, rating, title, comment);
+            if (reviewResult.IsFailure)
+                return reviewResult;
+
+            var review = reviewResult.Value;
+            _reviews.Add(review);
+            UpdateReviewStatistics();
+
+            return Result.Success(review);
+        }
+
+        public Result RemoveReview(Guid reviewId, Guid userId)
+        {
+            var review = _reviews.FirstOrDefault(r => r.Id == reviewId && !r.IsDeleted);
+            if (review == null)
+                return Result.Failure(ErrorResponse.NotFound("Review not found"));
+
+            // Business rule: Only the review author can remove their review
+            if (review.UserId != userId)
+                return Result.Failure(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("Review", "You can only remove your own reviews") }));
+
+            review.SetDeleted();
+            UpdateReviewStatistics();
+            return Result.Success();
+        }
+
+        public Result<ProductReview> UpdateReview(Guid reviewId, Guid userId, int rating, string? title = null, string? comment = null)
+        {
+            var review = _reviews.FirstOrDefault(r => r.Id == reviewId && !r.IsDeleted);
+            if (review == null)
+                return Result.Failure<ProductReview>(ErrorResponse.NotFound("Review not found"));
+
+            // Business rule: Only the review author can update their review
+            if (review.UserId != userId)
+                return Result.Failure<ProductReview>(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("Review", "You can only update your own reviews") }));
+
+            var updateResult = review.Update(rating, title, comment);
+            if (updateResult.IsFailure)
+                return Result.Failure<ProductReview>(updateResult.Error);
+
+            UpdateReviewStatistics();
+            return Result.Success(review);
+        }
+
+        // Review Statistics
+        public decimal GetAverageRating()
+        {
+            var activeReviews = _reviews.Where(r => !r.IsDeleted).ToList();
+            if (!activeReviews.Any())
+                return 0;
+
+            return (decimal)activeReviews.Average(r => r.Rating);
+        }
+
+        public int GetReviewCount()
+        {
+            return _reviews.Count(r => !r.IsDeleted);
+        }
+
+        public Dictionary<int, int> GetRatingDistribution()
+        {
+            var activeReviews = _reviews.Where(r => !r.IsDeleted);
+            return activeReviews
+                .GroupBy(r => r.Rating)
+                .ToDictionary(g => g.Key, g => g.Count());
+        }
+
+        // Update computed review statistics
+        private void UpdateReviewStatistics()
+        {
+            var activeReviews = _reviews.Where(r => !r.IsDeleted).ToList();
+            ReviewCount = activeReviews.Count;
+            AverageRating = activeReviews.Any() ? (decimal)activeReviews.Average(r => r.Rating) : 0;
+        }
+
+        // Public method to recalculate statistics (useful for data migration or corrections)
+        public void RecalculateReviewStatistics()
+        {
+            UpdateReviewStatistics();
+        }
+
+        // Helper method to check if reviews collection is loaded (for EF Core scenarios)
+        public bool AreReviewsLoaded()
+        {
+            // This will be true if reviews were explicitly loaded via Include() or LoadAsync()
+            // For EF Core, you could also check: _context.Entry(this).Collection(p => p.Reviews).IsLoaded
+            return _reviews != null;
         }
 
         private static List<ValidationError> ValidateInputs(string name, string description, decimal basePrice)

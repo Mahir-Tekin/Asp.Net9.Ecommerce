@@ -1,27 +1,26 @@
 'use client';
 import React from 'react';
-import { useProductFilters } from '@/context/ProductFilterContext';
+import { useURLFilters } from '@/hooks/useURLFilters';
 import CategoryVariationFilters from './CategoryVariationFilters';
 
 const ProductFiltersPanel: React.FC = () => {
-  const { filters, setFilters } = useProductFilters();
+  const { filters, updateFilters } = useURLFilters();
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     console.log('Price change event:', e.target.name, e.target.value);
     const { name, value } = e.target;
-    setFilters((prev) => ({
-      ...prev,
+    updateFilters({
       [name]: value === '' ? '' : Number(value),
-    }));
+    });
   };
 
   return (
-    <aside className="mb-6 p-4 bg-gray-50 rounded shadow">
-      <h3 className="text-lg font-semibold mb-4">Filters</h3>
+    <div className="space-y-6 mt-6">
+      <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">Filters</h3>
       
       {/* Price Range Filter */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium mb-1">Price Range</label>
+      <div>
+        <label className="block text-sm font-semibold mb-3 text-gray-800">Price Range</label>
         <div className="flex gap-2 items-center">
           <input
             type="number"
@@ -29,17 +28,17 @@ const ProductFiltersPanel: React.FC = () => {
             value={filters.minPrice ?? ''}
             onChange={handlePriceChange}
             placeholder="Min"
-            className="w-20 border rounded px-2 py-1"
+            className="w-20 border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             min={0}
           />
-          <span>-</span>
+          <span className="text-gray-500">-</span>
           <input
             type="number"
             name="maxPrice"
             value={filters.maxPrice ?? ''}
             onChange={handlePriceChange}
             placeholder="Max"
-            className="w-20 border rounded px-2 py-1"
+            className="w-20 border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             min={0}
           />
         </div>
@@ -47,7 +46,7 @@ const ProductFiltersPanel: React.FC = () => {
 
       {/* Dynamic Category-Based Variation Filters */}
       <CategoryVariationFilters />
-    </aside>
+    </div>
   );
 };
 

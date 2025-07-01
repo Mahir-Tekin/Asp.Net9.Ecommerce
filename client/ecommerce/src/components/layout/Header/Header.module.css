@@ -1,0 +1,202 @@
+/* Modern Header Styles */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  height: 100%;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.logo:hover {
+  transform: scale(1.05);
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+}
+
+.searchContainer {
+  flex: 1;
+  max-width: 500px;
+  margin: 0 40px;
+  position: relative;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 25px;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 16px;
+  outline: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.searchInput:focus {
+  background: white;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.searchInput::placeholder {
+  color: #666;
+}
+
+.navSection {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.cartLink {
+  position: relative;
+  padding: 10px 16px;
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.cartLink:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.authSection {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.userInfo {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  margin-right: 10px;
+}
+
+.dashboardLink {
+  color: white;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dashboardLink:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.logoutButton {
+  background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(255, 107, 107, 0.3);
+}
+
+.logoutButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+}
+
+.loginLink,
+.registerLink {
+  color: white;
+  text-decoration: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.loginLink {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.loginLink:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.registerLink {
+  background: linear-gradient(45deg, #4facfe, #00f2fe);
+  box-shadow: 0 2px 10px rgba(79, 172, 254, 0.3);
+}
+
+.registerLink:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 15px;
+  }
+  
+  .searchContainer {
+    margin: 0 20px;
+    max-width: 300px;
+  }
+  
+  .navSection {
+    gap: 10px;
+  }
+  
+  .authSection {
+    gap: 10px;
+  }
+  
+  .userInfo {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    height: 60px;
+  }
+  
+  .logo {
+    font-size: 20px;
+  }
+  
+  .searchContainer {
+    margin: 0 10px;
+  }
+  
+  .searchInput {
+    padding: 8px 15px;
+    font-size: 14px;
+  }
+}

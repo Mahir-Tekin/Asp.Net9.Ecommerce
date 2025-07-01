@@ -34,5 +34,13 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
         {
             return _context.Orders.AsQueryable();
         }
+
+        public async Task<bool> HasUserPurchasedAndReceivedProductAsync(Guid userId, Guid productId, CancellationToken cancellationToken = default)
+        {
+            return await _context.Orders
+                .Where(o => o.UserId == userId && o.Status == OrderStatus.Delivered)
+                .SelectMany(o => o.Items)
+                .AnyAsync(oi => oi.ProductId == productId, cancellationToken);
+        }
     }
 }

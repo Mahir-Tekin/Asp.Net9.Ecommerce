@@ -120,13 +120,20 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             if (variationTypes == null)
                 return Result.Failure(ErrorResponse.ValidationError(new List<ValidationError> { new("VariationTypes", "Variation types are required") }));
 
+            var newVariationTypes = variationTypes.ToList();
+            
+            // Check for duplicates in the input
+            var duplicates = newVariationTypes.GroupBy(vt => vt.Id).Where(g => g.Count() > 1).Select(g => g.Key);
+            if (duplicates.Any())
+                return Result.Failure(ErrorResponse.ValidationError(new List<ValidationError> { new("VariationType", "Duplicate variation types provided") }));
+
+            // Clear existing and add new ones
             VariationTypes.Clear();
-            foreach (var variationType in variationTypes)
+            foreach (var variationType in newVariationTypes)
             {
-                if (VariationTypes.Any(vt => vt.Id == variationType.Id))
-                    return Result.Failure(ErrorResponse.ValidationError(new List<ValidationError> { new("VariationType", $"Duplicate variation type: {variationType.Name}") }));
                 VariationTypes.Add(variationType);
             }
+            
             return Result.Success();
         }
 

@@ -1,9 +1,14 @@
 using Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.CreateProduct;
 using Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.UpdateProduct;
 using Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.DeleteProduct;
+using Asp.Net9.Ecommerce.Application.Catalog.Products.Commands;
+using Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.VoteOnProductReview;
+using Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.UpdateProductReview;
+using Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.DeleteProductReview;
 using Asp.Net9.Ecommerce.Application.Catalog.Products.Queries.GetProductById;
 using Asp.Net9.Ecommerce.Application.Catalog.Products.Queries.GetProducts;
 using Asp.Net9.Ecommerce.Application.Catalog.Products.Queries.GetProductBySlug;
+using Asp.Net9.Ecommerce.Application.Catalog.Products.Queries.GetProductReviews;
 using Asp.Net9.Ecommerce.Application.Catalog.Products.DTOs;
 using Asp.Net9.Ecommerce.API.Extensions;
 using Asp.Net9.Ecommerce.Shared.Results;
@@ -13,6 +18,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using System.Text.Json;
+using System.Security.Claims;
 
 namespace Asp.Net9.Ecommerce.API.Controllers
 {
@@ -157,8 +163,8 @@ namespace Asp.Net9.Ecommerce.API.Controllers
         /// </summary>
         /// <param name="id">The ID of the product</param>
         /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>The product details</returns>
-        /// <response code="200">Returns the product details</response>
+        /// <returns>The product details including images and review statistics</returns>
+        /// <response code="200">Returns the product details with images, average rating, and review count</response>
         /// <response code="404">If the product was not found</response>
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(ProductDetailsDto), StatusCodes.Status200OK)]
@@ -301,8 +307,8 @@ namespace Asp.Net9.Ecommerce.API.Controllers
         /// </summary>
         /// <param name="slug">The slug of the product</param>
         /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>The product details</returns>
-        /// <response code="200">Returns the product details</response>
+        /// <returns>The product details including review statistics</returns>
+        /// <response code="200">Returns the product details with average rating and review count</response>
         /// <response code="404">If the product was not found</response>
         [HttpGet("slug/{slug}")]
         [ProducesResponseType(typeof(ProductDetailsDto), StatusCodes.Status200OK)]
@@ -312,5 +318,198 @@ namespace Asp.Net9.Ecommerce.API.Controllers
             var result = await _mediator.Send(new GetProductBySlugQuery(slug), cancellationToken);
             return result.ToActionResult();
         }
+
+        #region Product Reviews
+
+        /// <summary>
+        /// Creates a new review for a product
+        /// </summary>
+        /// <param name="productId">The ID of the product to review</param>
+        /// <param name="request">The review creation request</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>The ID of the created review</returns>
+        /// <response code="201">Returns the ID of the created review</response>
+        /// <response code="400">If the request is invalid or user is not eligible</response>
+        /// <response code="401">If the user is not authenticated</response>
+        /// <response code="404">If the product was not found</response>
+        /// <response code="409">If the user has already reviewed this product</response>
+        [HttpPost("{productId}/reviews")]
+        [Authorize]
+        [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> CreateReview(
+            Guid productId, 
+            [FromBody] CreateProductReviewDto request, 
+            CancellationToken cancellationToken)
+        {
+            // Get the current user ID from the JWT token
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
+            {
+                return Unauthorized(ErrorResponse.Unauthorized("Invalid user token"));
+            }
+
+            // Ensure the productId from the route matches the request
+            request.ProductId = productId;
+
+            var command = new CreateProductReviewCommand(userGuid, request);
+            var result = await _mediator.Send(command, cancellationToken);
+
+            if (result.IsSuccess)
+                return CreatedAtAction(
+                    nameof(GetProductReviews), 
+                    new { productId = productId }, 
+                    new { reviewId = result.Value });
+
+            return result.ToActionResult();
+        }
+
+        /// <summary>
+        /// Gets all reviews for a product with pagination
+        /// </summary>
+        /// <param name="productId">The ID of the product</param>
+        /// <param name="pageNumber">Page number (default: 1)</param>
+        /// <param name="pageSize">Items per page (default: 10)</param>
+        /// <param name="sortBy">Sort by rating, date, or helpfulness (default: newest first)</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Paginated list of product reviews</returns>
+        /// <response code="200">Returns the paginated list of reviews</response>
+        /// <response code="404">If the product was not found</response>
+        [HttpGet("{productId}/reviews")]
+        [ProducesResponseType(typeof(ProductReviewListResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetProductReviews(
+            Guid productId,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] ReviewSortBy sortBy = ReviewSortBy.Newest,
+            CancellationToken cancellationToken = default)
+        {
+            var query = new GetProductReviewsQuery
+            {
+                ProductId = productId,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                SortBy = sortBy
+            };
+
+            var result = await _mediator.Send(query, cancellationToken);
+            return result.ToActionResult();
+        }
+
+        /// <summary>
+        /// Updates an existing review
+        /// </summary>
+        /// <param name="productId">The ID of the product</param>
+        /// <param name="reviewId">The ID of the review to update</param>
+        /// <param name="request">The review update request</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>No content if successful</returns>
+        /// <response code="204">If the review was updated successfully</response>
+        /// <response code="400">If the request is invalid</response>
+        /// <response code="401">If the user is not authenticated</response>
+        /// <response code="403">If the user is not the review author</response>
+        /// <response code="404">If the product or review was not found</response>
+        [HttpPut("{productId}/reviews/{reviewId}")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateReview(
+            Guid productId,
+            Guid reviewId,
+            [FromBody] UpdateProductReviewDto request,
+            CancellationToken cancellationToken)
+        {
+            // Get the current user ID from the JWT token
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
+            {
+                return Unauthorized(ErrorResponse.Unauthorized("Invalid user token"));
+            }
+
+            var command = new UpdateProductReviewCommand(productId, reviewId, userGuid, request);
+            var result = await _mediator.Send(command, cancellationToken);
+
+            return result.ToActionResult();
+        }
+
+        /// <summary>
+        /// Deletes a review
+        /// </summary>
+        /// <param name="productId">The ID of the product</param>
+        /// <param name="reviewId">The ID of the review to delete</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>No content if successful</returns>
+        /// <response code="204">If the review was deleted successfully</response>
+        /// <response code="401">If the user is not authenticated</response>
+        /// <response code="403">If the user is not the review author</response>
+        /// <response code="404">If the product or review was not found</response>
+        [HttpDelete("{productId}/reviews/{reviewId}")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteReview(
+            Guid productId,
+            Guid reviewId,
+            CancellationToken cancellationToken)
+        {
+            // Get the current user ID from the JWT token
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
+            {
+                return Unauthorized(ErrorResponse.Unauthorized("Invalid user token"));
+            }
+
+            var command = new DeleteProductReviewCommand(productId, reviewId, userGuid);
+            var result = await _mediator.Send(command, cancellationToken);
+
+            return result.ToActionResult();
+        }
+
+        /// <summary>
+        /// Votes on the helpfulness of a review
+        /// </summary>
+        /// <param name="productId">The ID of the product</param>
+        /// <param name="reviewId">The ID of the review</param>
+        /// <param name="helpful">True for helpful, false for unhelpful</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>No content if successful</returns>
+        /// <response code="204">If the vote was recorded successfully</response>
+        /// <response code="401">If the user is not authenticated</response>
+        /// <response code="404">If the product or review was not found</response>
+        [HttpPost("{productId}/reviews/{reviewId}/vote")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> VoteOnReview(
+            Guid productId,
+            Guid reviewId,
+            [FromQuery] bool helpful,
+            CancellationToken cancellationToken)
+        {
+            // Get the current user ID from the JWT token
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
+            {
+                return Unauthorized(ErrorResponse.Unauthorized("Invalid user token"));
+            }
+
+            var voteType = helpful ? Domain.Catalog.VoteType.Helpful : Domain.Catalog.VoteType.Unhelpful;
+            var command = new VoteOnProductReviewCommand(productId, reviewId, userGuid, voteType);
+            var result = await _mediator.Send(command, cancellationToken);
+
+            return result.ToActionResult();
+        }
+
+        #endregion
     }
 }

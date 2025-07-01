@@ -10,9 +10,13 @@ export default function ProductPrice({ price, oldPrice }: ProductPriceProps) {
   const hasDiscount = typeof oldPrice === 'number' && oldPrice > price;
   return (
     <div className="mb-2 flex items-center gap-2">
-      <span className="text-xl font-bold text-indigo-700">${price}</span>
+      <span className="text-xl font-bold text-indigo-700">
+        ${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      </span>
       {hasDiscount && (
-        <span className="text-base line-through text-gray-500">${oldPrice}</span>
+        <span className="text-base line-through text-gray-500">
+          ${oldPrice?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </span>
       )}
     </div>
   );

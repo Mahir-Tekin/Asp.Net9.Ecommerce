@@ -169,6 +169,13 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
                 return Result.Failure(ErrorResponse.ValidationError(
                     new List<ValidationError> { new("Price", "Price must be greater than zero") }));
 
+            // Handle OldPrice logic: if new price is lower than current price, save current as old price
+            if (newPrice.HasValue && newPrice.Value < Price)
+            {
+                OldPrice = Price; // Save current price as old price
+            }
+            // If new price is higher or equal, keep existing OldPrice (don't change it)
+
             _price = newPrice;
             return Result.Success();
         }

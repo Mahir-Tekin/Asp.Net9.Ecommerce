@@ -7,14 +7,29 @@
   --background: #fff;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground: #fff;
-    --background: #000;
-  }
-}
-
 body {
   color: var(--foreground);
   background: var(--background);
+}
+
+/* Custom utilities */
+@layer utilities {
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Focus styles for accessibility */
+*:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
 }

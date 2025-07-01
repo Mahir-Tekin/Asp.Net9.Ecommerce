@@ -30,11 +30,25 @@ const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({ images, set
           },
         });
         let url = response.data;
-        // If backend returns a relative path, convert to full URL
-        const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`;
+        // Always store only the relative path (if absolute, convert to relative)
+        let relativeUrl = url;
+        if (url.startsWith('http')) {
+          // Remove API_URL prefix if present
+          if (url.startsWith(API_URL)) {
+            relativeUrl = url.substring(API_URL.length);
+          } else {
+            // fallback: try to extract path
+            try {
+              const u = new URL(url);
+              relativeUrl = u.pathname + u.search + u.hash;
+            } catch {
+              // fallback to original url
+            }
+          }
+        }
         setImages([
           ...images,
-          { url: fullUrl, altText: '', isMain: images.length === 0 },
+          { url: relativeUrl, altText: '', isMain: images.length === 0 },
         ]);
       }
     } catch (err: any) {
@@ -88,36 +102,41 @@ const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({ images, set
       {uploading && <div className="text-blue-500">Uploading...</div>}
       {error && <div className="text-red-500">{error}</div>}
       <div className="flex flex-wrap gap-4 mt-2">
-        {images.map((img, idx) => (
-          <div key={img.url} className="border rounded p-2 flex flex-col items-center w-40">
-            <img src={img.url} alt={img.altText || 'Product image'} className="w-32 h-32 object-cover mb-2" />
-            <input
-              type="text"
-              placeholder="Alt text"
-              value={img.altText}
-              onChange={e => handleAltTextChange(idx, e.target.value)}
-              className="w-full border rounded p-1 text-xs mb-1"
-              required
-            />
-            <div className="flex items-center gap-2 mb-1">
+        {images.map((img, idx) => {
+          // Always display using full URL if not absolute
+          const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
+          const src = img.url.startsWith('http') ? img.url : `${API_URL}${img.url}`;
+          return (
+            <div key={img.url} className="border rounded p-2 flex flex-col items-center w-40">
+              <img src={src} alt={img.altText || 'Product image'} className="w-32 h-32 object-cover mb-2" />
               <input
-                type="radio"
-                checked={img.isMain}
-                onChange={() => handleSetMain(idx)}
-                name="mainImage"
-                id={`main-image-${idx}`}
+                type="text"
+                placeholder="Alt text"
+                value={img.altText}
+                onChange={e => handleAltTextChange(idx, e.target.value)}
+                className="w-full border rounded p-1 text-xs mb-1"
+                required
               />
-              <label htmlFor={`main-image-${idx}`} className="text-xs">Main</label>
+              <div className="flex items-center gap-2 mb-1">
+                <input
+                  type="radio"
+                  checked={img.isMain}
+                  onChange={() => handleSetMain(idx)}
+                  name="mainImage"
+                  id={`main-image-${idx}`}
+                />
+                <label htmlFor={`main-image-${idx}`} className="text-xs">Main</label>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleRemove(idx)}
+                className="text-xs text-red-600 hover:underline"
+              >
+                Remove
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => handleRemove(idx)}
-              className="text-xs text-red-600 hover:underline"
-            >
-              Remove
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

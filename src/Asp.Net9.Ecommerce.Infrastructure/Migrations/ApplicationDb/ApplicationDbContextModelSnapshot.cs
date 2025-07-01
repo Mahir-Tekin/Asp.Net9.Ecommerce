@@ -76,6 +76,12 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Migrations.ApplicationDb
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<decimal>("AverageRating")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(3, 2)
+                        .HasColumnType("decimal(3,2)")
+                        .HasDefaultValue(0m);
+
                     b.Property<decimal>("BasePrice")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -101,6 +107,11 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Migrations.ApplicationDb
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<int>("ReviewCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -110,6 +121,8 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Migrations.ApplicationDb
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AverageRating");
 
                     b.HasIndex("BasePrice");
 
@@ -163,6 +176,75 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Migrations.ApplicationDb
                     b.HasIndex("ProductId");
 
                     b.ToTable("ProductImage");
+                });
+
+            modelBuilder.Entity("Asp.Net9.Ecommerce.Domain.Catalog.ProductReview", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("HelpfulVotes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("UnhelpfulVotes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("Rating");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ProductId", "DeletedAt");
+
+                    b.HasIndex("ProductId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("ProductReviews", t =>
+                        {
+                            t.HasCheckConstraint("CK_ProductReviews_Content", "Title IS NOT NULL OR Comment IS NOT NULL");
+
+                            t.HasCheckConstraint("CK_ProductReviews_HelpfulVotes", "HelpfulVotes >= 0");
+
+                            t.HasCheckConstraint("CK_ProductReviews_Rating", "Rating >= 1 AND Rating <= 5");
+
+                            t.HasCheckConstraint("CK_ProductReviews_UnhelpfulVotes", "UnhelpfulVotes >= 0");
+                        });
                 });
 
             modelBuilder.Entity("Asp.Net9.Ecommerce.Domain.Catalog.ProductVariant", b =>
@@ -245,6 +327,39 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Migrations.ApplicationDb
 
                             t.HasCheckConstraint("CK_ProductVariants_StockQuantity", "StockQuantity >= 0");
                         });
+                });
+
+            modelBuilder.Entity("Asp.Net9.Ecommerce.Domain.Catalog.ReviewVote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ReviewId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("VoteType")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReviewId", "UserId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ReviewVotes_ReviewId_UserId");
+
+                    b.ToTable("ReviewVotes", (string)null);
                 });
 
             modelBuilder.Entity("Asp.Net9.Ecommerce.Domain.Catalog.VariantOption", b =>
@@ -488,6 +603,17 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Migrations.ApplicationDb
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("Asp.Net9.Ecommerce.Domain.Catalog.ProductReview", b =>
+                {
+                    b.HasOne("Asp.Net9.Ecommerce.Domain.Catalog.Product", "Product")
+                        .WithMany("Reviews")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("Asp.Net9.Ecommerce.Domain.Catalog.ProductVariant", b =>
                 {
                     b.HasOne("Asp.Net9.Ecommerce.Domain.Catalog.Product", "Product")
@@ -497,6 +623,17 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Migrations.ApplicationDb
                         .IsRequired();
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("Asp.Net9.Ecommerce.Domain.Catalog.ReviewVote", b =>
+                {
+                    b.HasOne("Asp.Net9.Ecommerce.Domain.Catalog.ProductReview", "Review")
+                        .WithMany("Votes")
+                        .HasForeignKey("ReviewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Review");
                 });
 
             modelBuilder.Entity("Asp.Net9.Ecommerce.Domain.Catalog.VariantOption", b =>
@@ -631,7 +768,14 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Migrations.ApplicationDb
                 {
                     b.Navigation("Images");
 
+                    b.Navigation("Reviews");
+
                     b.Navigation("Variants");
+                });
+
+            modelBuilder.Entity("Asp.Net9.Ecommerce.Domain.Catalog.ProductReview", b =>
+                {
+                    b.Navigation("Votes");
                 });
 
             modelBuilder.Entity("Asp.Net9.Ecommerce.Domain.Catalog.VariationType", b =>

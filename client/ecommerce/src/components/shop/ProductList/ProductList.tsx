@@ -3,12 +3,14 @@
 import React, { useEffect, useState } from 'react';
 import ProductCard from '../ProductCard/ProductCard';
 import { fetchShopProductList, ShopProductListItem } from './ProductList.api';
-import { useProductFilters } from '@/context/ProductFilterContext';
+import { useURLFilters } from '@/hooks/useURLFilters';
 import ProductSortDropdown from '../sort/ProductSortDropdown';
 import Pagination from '../pagination/Pagination';
+import ActiveFiltersDisplay from '../filter/ActiveFiltersDisplay';
+import ShopBreadcrumb from '../breadcrumb/ShopBreadcrumb';
 
 export default function ProductList() {
-  const { filters } = useProductFilters();
+  const { filters } = useURLFilters();
   const [products, setProducts] = useState<ShopProductListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,48 +53,84 @@ export default function ProductList() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  if (loading) return <div>Loading products...</div>;
-  if (error) return <div>{error}</div>;
-  if (products.length === 0) return <div>No products found.</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-96">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600 text-lg">Loading products...</p>
+      </div>
+    </div>
+  );
+  
+  if (error) return (
+    <div className="flex items-center justify-center min-h-96">
+      <div className="text-center">
+        <div className="text-red-500 text-6xl mb-4">⚠️</div>
+        <p className="text-red-600 text-lg">{error}</p>
+      </div>
+    </div>
+  );
+  
+  if (products.length === 0) return (
+    <div className="flex items-center justify-center min-h-96">
+      <div className="text-center">
+        <div className="text-gray-400 text-6xl mb-4">📦</div>
+        <p className="text-gray-600 text-lg">No products found</p>
+        <p className="text-gray-500 text-sm mt-2">Try adjusting your filters</p>
+      </div>
+    </div>
+  );
 
   return (
-    <div>
-      {/* Sort dropdown at the top of product list */}
-      <div className="flex justify-end mb-4">
-        <ProductSortDropdown />
-      </div>
+    <div className="min-h-screen">
+      {/* Breadcrumb */}
+      <ShopBreadcrumb />
       
-      {/* Results info */}
-      <div className="mb-4 text-sm text-gray-600">
-        Showing {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, total)} of {total} results
-      </div>
-      
-      {/* Product grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
-        {products.map((product) => (
-          <ProductCard
-            key={product.id}
-            id={product.id}
-            name={product.name}
-            mainImage={product.mainImage}
-            lowestPrice={product.lowestPrice}
-            lowestOldPrice={product.lowestOldPrice}
-            slug={product.slug}
-          />
-        ))}
-      </div>
-      
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Active Filters Display */}
+        <ActiveFiltersDisplay />
+        
+        {/* Results count and sort */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+          <p className="text-gray-700 font-medium">
+            {total === 1 ? '1 product found' : `${total.toLocaleString()} products found`}
+          </p>
+          <ProductSortDropdown />
+        </div>
+        
+        {/* Product grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
+          {products.map((product) => (
+            <ProductCard
+              key={product.id}
+              id={product.id}
+              name={product.name}
+              mainImage={product.mainImage}
+              variantCount={product.variantCount}
+              lowestPrice={product.lowestPrice}
+              lowestOldPrice={product.lowestOldPrice}
+              slug={product.slug}
+              hasStock={product.hasStock}
+              totalStock={product.totalStock}
+              averageRating={product.averageRating}
+              reviewCount={product.reviewCount}
+            />
+          ))}
+        </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          total={total}
-          pageSize={pageSize}
-          onPageChange={handlePageChange}
-        />
-      )}
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              total={total}
+              pageSize={pageSize}
+              onPageChange={handlePageChange}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

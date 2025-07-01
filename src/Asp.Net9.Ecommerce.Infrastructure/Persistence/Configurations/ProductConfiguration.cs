@@ -26,6 +26,13 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Configurations
             // Add check constraint for BasePrice
             builder.ToTable(t => t.HasCheckConstraint("CK_Products_BasePrice", "BasePrice > 0"));
 
+            // Review Statistics (computed fields)
+            builder.Property(p => p.AverageRating)
+                .HasPrecision(3, 2)
+                .HasDefaultValue(0);
+
+            builder.Property(p => p.ReviewCount)
+                .HasDefaultValue(0);
 
             // Status
             builder.Property(p => p.IsActive)
@@ -58,11 +65,18 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Configurations
                 .HasForeignKey(i => i.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // Configure one-to-many relationship for ProductReview entity
+            builder.HasMany(p => p.Reviews)
+                .WithOne(r => r.Product)
+                .HasForeignKey(r => r.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // Improved Indexes
             builder.HasIndex(p => p.Name);
             builder.HasIndex(p => p.CategoryId);
             builder.HasIndex(p => p.IsActive);
             builder.HasIndex(p => p.BasePrice); // Add index for price queries
+            builder.HasIndex(p => p.AverageRating); // Add index for rating queries/sorting
             builder.HasIndex(p => new { p.IsActive, p.DeletedAt }); // Composite index for active products
             builder.HasIndex(p => p.Slug).IsUnique();
         }

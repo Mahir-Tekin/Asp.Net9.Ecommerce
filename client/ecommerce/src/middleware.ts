@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
                 if (response.ok) {
                     const userData = await response.json();
                     if (userData.roles.includes('Admin') && (path === '/' || path === '/login' || path === '/register')) {
-                        return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+                        return NextResponse.redirect(new URL('/admin/products', request.url));
                     }
                 }
             } catch (error) {

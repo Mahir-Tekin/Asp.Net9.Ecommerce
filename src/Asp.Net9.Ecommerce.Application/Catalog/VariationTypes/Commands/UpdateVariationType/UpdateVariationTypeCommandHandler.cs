@@ -1,4 +1,5 @@
 using Asp.Net9.Ecommerce.Application.Common.Interfaces;
+using Asp.Net9.Ecommerce.Domain.Catalog;
 using Asp.Net9.Ecommerce.Shared.Results;
 using MediatR;
 
@@ -17,8 +18,8 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.VariationTypes.Commands.UpdateV
         {
             try
             {
-                // Get existing variation type
-                var variationType = await _unitOfWork.VariationTypes.GetByIdAsync(request.Id, cancellationToken);
+                // Get existing variation type with options
+                var variationType = await _unitOfWork.VariationTypes.GetByIdWithOptionsAsync(request.Id, cancellationToken);
                 if (variationType == null)
                     return Result.NotFound($"Variation type with ID '{request.Id}' was not found");
 
@@ -49,19 +50,44 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.VariationTypes.Commands.UpdateV
                         return deactivateResult;
                 }
 
-                // Update options
-                foreach (var option in request.Options.OrderBy(o => o.SortOrder))
+                // Update options safely - preserve existing options to maintain product variant relationships
+                // IMPORTANT: We only update existing options and add new ones using domain methods
+                // We DON'T remove existing options automatically because product variants depend on them.
+
+                // First, handle all existing option updates
+                foreach (var requestOption in request.Options.Where(o => o.Id.HasValue).OrderBy(o => o.SortOrder))
                 {
-                    // Remove existing option if it exists
-                    var removeResult = variationType.RemoveOption(option.Value);
+                    // Update existing option - this preserves the option ID and all relationships
+                    var updateOptionResult = variationType.UpdateOption(
+                        requestOption.Id!.Value, 
+                        requestOption.Value, 
+                        requestOption.DisplayValue, 
+                        requestOption.SortOrder);
                     
-                    // Add the new/updated option
-                    var addResult = variationType.AddOption(option.Value, option.DisplayValue);
-                    if (addResult.IsFailure)
-                        return addResult;
+                    if (updateOptionResult.IsFailure)
+                        return updateOptionResult;
                 }
 
-                // Save changes
+                // Then, handle new options by creating them separately and adding to DbContext directly
+                var newOptions = request.Options.Where(o => !o.Id.HasValue).OrderBy(o => o.SortOrder).ToList();
+                
+                foreach (var requestOption in newOptions)
+                {
+                    // Create new option with proper entity state
+                    var optionResult = VariantOption.Create(
+                        requestOption.Value, 
+                        requestOption.DisplayValue, 
+                        requestOption.SortOrder, 
+                        variationType.Id);
+                    
+                    if (optionResult.IsFailure)
+                        return Result.Failure(optionResult.Error);
+
+                    // Add the new option to the collection - EF Core will track it as Added
+                    variationType.Options.Add(optionResult.Value);
+                }
+
+                // Save all changes in one transaction
                 _unitOfWork.VariationTypes.Update(variationType);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -73,4 +99,4 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.VariationTypes.Commands.UpdateV
             }
         }
     }
-} 
+}

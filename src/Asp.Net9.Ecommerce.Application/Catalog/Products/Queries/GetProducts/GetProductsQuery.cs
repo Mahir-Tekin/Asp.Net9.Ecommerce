@@ -32,6 +32,8 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Queries.GetProducts
         PriceAsc,
         PriceDesc,
         CreatedAtAsc,
-        CreatedAtDesc
+        CreatedAtDesc,
+        RatingAsc,
+        RatingDesc
     }
 } 

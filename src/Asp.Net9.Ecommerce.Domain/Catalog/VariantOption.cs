@@ -50,5 +50,18 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
 
             return errors;
         }
+
+        public Result Update(string value, string displayValue, int sortOrder)
+        {
+            var errors = ValidateInputs(value, displayValue);
+            if (errors.Any())
+                return Result.Failure(ErrorResponse.ValidationError(errors));
+
+            Value = value.Trim().ToLowerInvariant();
+            DisplayValue = displayValue.Trim();
+            SortOrder = sortOrder;
+
+            return Result.Success();
+        }
     }
 }

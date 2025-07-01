@@ -14,5 +14,6 @@ namespace Asp.Net9.Ecommerce.Application.Common.Interfaces.RepositoryInterfaces
         void Add(VariationType variationType);
         void Update(VariationType variationType);
         void Delete(VariationType variationType);
+        void AddOption(VariantOption option);
     }
 }

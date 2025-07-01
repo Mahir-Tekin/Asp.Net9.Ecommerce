@@ -20,10 +20,10 @@ const SelectedVariationTypeItem: React.FC<SelectedVariationTypeItemProps> = ({
         <span className="font-medium text-sm">{variationType.displayName}</span>
         <div className="flex gap-2">
           <button type="button" className="text-xs text-blue-600 hover:underline" onClick={onEditOptions}>
-            Düzenle
+            Edit
           </button>
           <button type="button" className="text-xs text-red-500 hover:underline" onClick={onRemoveType}>
-            Kaldır
+            Remove
           </button>
         </div>
       </div>

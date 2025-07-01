@@ -24,6 +24,10 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.DTOs
         public bool HasStock { get; set; }
         public decimal LowestPrice { get; set; }
         public decimal? LowestOldPrice { get; set; }
+        
+        // Review Statistics
+        public decimal AverageRating { get; set; }
+        public int ReviewCount { get; set; }
     }
 
     public class ProductImageDto

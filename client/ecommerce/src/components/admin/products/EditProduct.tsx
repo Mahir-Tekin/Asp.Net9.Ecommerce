@@ -1,13 +1,437 @@
-// Placeholder for EditProduct
 'use client';
 
-export default function EditProduct({ id, onSuccess, onCancel }: { id: string; onSuccess: () => void; onCancel: () => void }) {
+import { useState, useEffect } from 'react';
+import { ArrowLeftIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+
+interface ProductVariant {
+  id: string;
+  name: string;
+  price: number;
+  stockQuantity: number;
+  trackInventory: boolean;
+  variations: Record<string, string>;
+  useCustomPrice?: boolean;
+}
+
+interface UpdateProductData {
+  name: string;
+  description: string;
+  basePrice: number;
+  isActive: boolean;
+  variants: ProductVariant[];
+}
+
+interface EditProductProps {
+  id: string;
+  onSuccess: () => void;
+  onCancel: () => void;
+}
+
+export default function EditProduct({ id, onSuccess, onCancel }: EditProductProps) {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState<UpdateProductData>({
+    name: '',
+    description: '',
+    basePrice: 0,
+    isActive: true,
+    variants: []
+  });
+
+  useEffect(() => {
+    fetchProduct();
+  }, [id]);
+
+  const fetchProduct = async () => {
+    try {
+      setLoading(true);
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api';
+      const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : undefined;
+      
+      const response = await fetch(`${API_URL}/Products/${id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch product');
+      }
+      
+      const product = await response.json();
+      
+      // Map the fetched product to the update format
+      setFormData({
+        name: product.name || '',
+        description: product.description || '',
+        basePrice: product.basePrice || 0,
+        isActive: product.isActive ?? true,
+        variants: product.variants?.map((variant: any) => ({
+          id: variant.id,
+          name: variant.name || '',
+          price: variant.price || 0,
+          stockQuantity: variant.stockQuantity || 0,
+          trackInventory: variant.trackInventory ?? true,
+          variations: variant.selectedOptions || {},
+          useCustomPrice: variant.price !== product.basePrice // Determine if using custom price
+        })) || []
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load product');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      setSaving(true);
+      setError(null);
+      
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api';
+      const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : undefined;
+      
+      // Prepare variants - remove price field when useCustomPrice is false
+      const preparedVariants = formData.variants.map(v => {
+        if (v.useCustomPrice) {
+          return { ...v, price: v.price };
+        } else {
+          // Remove price field so backend uses base price
+          const { price, useCustomPrice, ...rest } = v;
+          return rest;
+        }
+      });
+      
+      const payload = {
+        ...formData,
+        variants: preparedVariants
+      };
+      
+      const response = await fetch(`${API_URL}/Products/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to update product');
+      }
+      
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update product');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateFormData = (field: keyof UpdateProductData, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const updateVariant = (index: number, field: keyof ProductVariant, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      variants: prev.variants.map((variant, i) => 
+        i === index ? { ...variant, [field]: value } : variant
+      )
+    }));
+  };
+
+  const toggleCustomPrice = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      variants: prev.variants.map((variant, i) => {
+        if (i === index) {
+          if (variant.useCustomPrice) {
+            // Switching to base price
+            return { ...variant, useCustomPrice: false, price: prev.basePrice };
+          } else {
+            // Switching to custom price
+            return { ...variant, useCustomPrice: true, price: variant.price || prev.basePrice };
+          }
+        }
+        return variant;
+      })
+    }));
+  };
+
+  const addVariant = () => {
+    const newVariant: ProductVariant = {
+      id: '', // Will be generated by backend for new variants
+      name: '',
+      price: formData.basePrice,
+      stockQuantity: 0,
+      trackInventory: true,
+      variations: {},
+      useCustomPrice: false
+    };
+    
+    setFormData(prev => ({
+      ...prev,
+      variants: [...prev.variants, newVariant]
+    }));
+  };
+
+  const removeVariant = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      variants: prev.variants.filter((_, i) => i !== index)
+    }));
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
+          <div className="space-y-4">
+            <div className="h-4 bg-gray-200 rounded"></div>
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <h3>Edit Product (placeholder)</h3>
-      <div>Product ID: {id}</div>
-      <button onClick={onSuccess}>Save</button>
-      <button onClick={onCancel}>Cancel</button>
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      {/* Header */}
+      <div className="p-6 border-b border-gray-200">
+        <div className="flex items-center gap-3 mb-2">
+          <button
+            onClick={onCancel}
+            className="inline-flex items-center text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            <ArrowLeftIcon className="w-5 h-5 mr-1" />
+            Back
+          </button>
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900">Edit Product</h2>
+        <p className="text-gray-600">Update product information and variants</p>
+      </div>
+
+      {error && (
+        <div className="p-6 bg-red-50 border-b border-red-200">
+          <p className="text-red-600">{error}</p>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        {/* Basic Information */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+              Product Name *
+            </label>
+            <input
+              type="text"
+              id="name"
+              required
+              value={formData.name}
+              onChange={(e) => updateFormData('name', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter product name"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="basePrice" className="block text-sm font-medium text-gray-700 mb-2">
+              Base Price *
+            </label>
+            <input
+              type="number"
+              id="basePrice"
+              required
+              min="0"
+              step="0.01"
+              value={formData.basePrice}
+              onChange={(e) => updateFormData('basePrice', parseFloat(e.target.value) || 0)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="0.00"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+            Description
+          </label>
+          <textarea
+            id="description"
+            rows={4}
+            value={formData.description}
+            onChange={(e) => updateFormData('description', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Enter product description"
+          />
+        </div>
+
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="isActive"
+            checked={formData.isActive}
+            onChange={(e) => updateFormData('isActive', e.target.checked)}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          />
+          <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700">
+            Product is active
+          </label>
+        </div>
+
+        {/* Variants Section */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium text-gray-900">Product Variants</h3>
+          </div>
+
+          {formData.variants.length === 0 ? (
+            <div className="text-center py-6 bg-gray-50 rounded-lg">
+              <p className="text-gray-500">No variants added yet</p>
+              <button
+                type="button"
+                onClick={addVariant}
+                className="mt-2 text-blue-600 hover:text-blue-500"
+              >
+                Add your first variant
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {formData.variants.map((variant, index) => (
+                <div key={index} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-medium text-gray-900">Variant {index + 1}</h4>
+                    <button
+                      type="button"
+                      onClick={() => removeVariant(index)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Variant Name
+                      </label>
+                      <input
+                        type="text"
+                        value={variant.name}
+                        onChange={(e) => updateVariant(index, 'name', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Variant name"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Stock Quantity
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={variant.stockQuantity}
+                        onChange={(e) => updateVariant(index, 'stockQuantity', parseInt(e.target.value) || 0)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="0"
+                      />
+                    </div>
+
+                    <div className="flex items-center pt-6">
+                      <input
+                        type="checkbox"
+                        checked={variant.trackInventory}
+                        onChange={(e) => updateVariant(index, 'trackInventory', e.target.checked)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <label className="ml-2 block text-sm text-gray-700">
+                        Track Inventory
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Price Section */}
+                  <div className="mt-4 p-3 bg-gray-50 rounded-md">
+                    <div className="flex items-center mb-3">
+                      <input
+                        type="checkbox"
+                        checked={variant.useCustomPrice || false}
+                        onChange={() => toggleCustomPrice(index)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <label className="ml-2 block text-sm font-medium text-gray-700">
+                        Use Custom Price
+                      </label>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {variant.useCustomPrice ? 'Custom Price' : 'Price (Base Price Applied)'}
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2 text-gray-500">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={variant.useCustomPrice ? (variant.price || '') : ''}
+                          onChange={(e) => updateVariant(index, 'price', parseFloat(e.target.value) || 0)}
+                          disabled={!variant.useCustomPrice}
+                          className={`w-full pl-8 pr-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                            variant.useCustomPrice 
+                              ? 'border-gray-300 bg-white' 
+                              : 'border-gray-200 bg-gray-100'
+                          }`}
+                          placeholder={variant.useCustomPrice ? '0.00' : `Base price: $${formData.basePrice.toFixed(2)}`}
+                        />
+                      </div>
+                      {!variant.useCustomPrice && (
+                        <p className="mt-1 text-xs text-gray-500">
+                          This variant will use the base price of ${formData.basePrice.toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Form Actions */}
+        <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-200">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={saving}
+            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+          >
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

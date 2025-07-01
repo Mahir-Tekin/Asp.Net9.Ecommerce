@@ -19,9 +19,13 @@ export default function OrderSummary() {
       <div className="flex flex-col gap-4">
         {cartItems.map(item => (
           <div key={item.variantId} className="flex items-center gap-4 border-b pb-4">
-            {item.image && (
-              <Image src={item.image} alt={item.name} width={60} height={60} className="rounded" />
-            )}
+            {item.image && (() => {
+              const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
+              const src = item.image.startsWith('http') ? item.image : `${API_URL}${item.image}`;
+              return (
+                <Image src={src} alt={item.name} width={60} height={60} className="rounded" />
+              );
+            })()}
             <div className="flex-1">
               <Link href={`/shop/${item.slug}`} className="font-semibold hover:underline">{item.name}</Link>
               {item.variantName && <div className="text-sm text-gray-500">{item.variantName}</div>}

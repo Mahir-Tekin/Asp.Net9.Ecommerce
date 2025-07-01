@@ -9,5 +9,6 @@ namespace Asp.Net9.Ecommerce.Application.Common.Interfaces.RepositoryInterfaces
         Task AddAsync(Order order, CancellationToken cancellationToken = default);
         Task UpdateAsync(Order order, CancellationToken cancellationToken = default);
         IQueryable<Order> GetQueryable();
+        Task<bool> HasUserPurchasedAndReceivedProductAsync(Guid userId, Guid productId, CancellationToken cancellationToken = default);
     }
 }

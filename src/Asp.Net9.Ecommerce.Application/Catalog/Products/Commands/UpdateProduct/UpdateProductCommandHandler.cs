@@ -22,19 +22,28 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.UpdateProduct
                 // 1. Get product with variants
                 var product = await _unitOfWork.Products.GetByIdWithVariantsAsync(request.Id, cancellationToken);
                 if (product == null)
+                {
+                    await _unitOfWork.RollbackTransactionAsync(cancellationToken);
                     return Result.NotFound("Product not found");
+                }
 
                 // 2. Update basic product information
                 var updateResult = product.Update(request.Name, request.Description);
                 if (updateResult.IsFailure)
+                {
+                    await _unitOfWork.RollbackTransactionAsync(cancellationToken);
                     return updateResult;
+                }
 
                 // 3. Update price if changed
                 if (product.BasePrice != request.BasePrice)
                 {
                     var priceUpdateResult = product.UpdatePrice(request.BasePrice);
                     if (priceUpdateResult.IsFailure)
+                    {
+                        await _unitOfWork.RollbackTransactionAsync(cancellationToken);
                         return priceUpdateResult;
+                    }
                 }
 
                 // 4. Update active status if changed
@@ -42,7 +51,10 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.UpdateProduct
                 {
                     var stateChangeResult = request.IsActive ? product.Activate() : product.Deactivate();
                     if (stateChangeResult.IsFailure)
+                    {
+                        await _unitOfWork.RollbackTransactionAsync(cancellationToken);
                         return stateChangeResult;
+                    }
                 }
 
                 // 5. Update variants
@@ -50,14 +62,20 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.UpdateProduct
                 {
                     var variant = product.Variants.FirstOrDefault(v => v.Id == variantInfo.Id);
                     if (variant == null)
+                    {
+                        await _unitOfWork.RollbackTransactionAsync(cancellationToken);
                         return Result.NotFound($"Variant with ID {variantInfo.Id} not found");
+                    }
 
                     // Update variant name
                     if (variant.Name != variantInfo.Name)
                     {
                         var nameUpdateResult = variant.UpdateName(variantInfo.Name);
                         if (nameUpdateResult.IsFailure)
+                        {
+                            await _unitOfWork.RollbackTransactionAsync(cancellationToken);
                             return nameUpdateResult;
+                        }
                     }
 
                     // Update variant price
@@ -65,7 +83,10 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.UpdateProduct
                     {
                         var priceUpdateResult = variant.UpdatePrice(variantInfo.Price);
                         if (priceUpdateResult.IsFailure)
+                        {
+                            await _unitOfWork.RollbackTransactionAsync(cancellationToken);
                             return priceUpdateResult;
+                        }
                     }
 
                     // Update stock if tracking inventory
@@ -73,36 +94,46 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.UpdateProduct
                     {
                         var stockUpdateResult = variant.UpdateStock(variantInfo.StockQuantity.Value);
                         if (stockUpdateResult.IsFailure)
+                        {
+                            await _unitOfWork.RollbackTransactionAsync(cancellationToken);
                             return stockUpdateResult;
+                        }
                     }
 
-                    // Update variations
-                    if (variantInfo.Variations != null)
+                    // Update variant options (using new normalized structure)
+                    if (variantInfo.SelectedOptions != null)
                     {
-                        // TODO: Refactor for new normalized variant/option structure
-                        // Commented out legacy variation update logic to prevent errors
-                        // var currentVariations = variant.GetVariations();
-                        // foreach (var oldVariation in currentVariations)
-                        // {
-                        //     if (!variantInfo.Variations.ContainsKey(oldVariation.Key))
-                        //     {
-                        //         var removeResult = variant.RemoveVariation(oldVariation.Key);
-                        //         if (removeResult.IsFailure)
-                        //             return removeResult;
-                        //     }
-                        // }
-                        //
-                        // // Add or update new variations
-                        // foreach (var newVariation in variantInfo.Variations)
-                        // {
-                        //     if (!currentVariations.TryGetValue(newVariation.Key, out var currentValue) || 
-                        //         currentValue != newVariation.Value)
-                        //     {
-                        //         var addResult = variant.AddVariation(newVariation.Key, newVariation.Value);
-                        //         if (addResult.IsFailure)
-                        //             return addResult;
-                        //     }
-                        // }
+                        // Get current variant options
+                        var currentOptions = variant.GetVariantOptions();
+                        
+                        // Remove options that are no longer selected
+                        foreach (var currentOption in currentOptions)
+                        {
+                            if (!variantInfo.SelectedOptions.ContainsKey(currentOption.Key))
+                            {
+                                var removeResult = variant.RemoveOption(currentOption.Key);
+                                if (removeResult.IsFailure)
+                                {
+                                    await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                                    return removeResult;
+                                }
+                            }
+                        }
+                        
+                        // Add or update selected options
+                        foreach (var selectedOption in variantInfo.SelectedOptions)
+                        {
+                            if (!currentOptions.TryGetValue(selectedOption.Key, out var currentOptionId) || 
+                                currentOptionId != selectedOption.Value)
+                            {
+                                var addResult = variant.AddOption(selectedOption.Key, selectedOption.Value);
+                                if (addResult.IsFailure)
+                                {
+                                    await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                                    return addResult;
+                                }
+                            }
+                        }
                     }
                 }
 

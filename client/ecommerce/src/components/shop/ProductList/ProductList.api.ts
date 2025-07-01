@@ -4,9 +4,14 @@ export interface ShopProductListItem {
   id: string;
   name: string;
   mainImage: string | null;
+  variantCount: number;
   lowestPrice: number;
   lowestOldPrice?: number | null;
   slug: string;
+  hasStock: boolean;
+  totalStock: number;
+  averageRating: number;
+  reviewCount: number;
 }
 
 export interface ShopProductListResponse {

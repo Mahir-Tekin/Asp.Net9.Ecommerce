@@ -4,10 +4,7 @@ const AdminSidebar = () => {
     return (
         <aside className="w-64 min-h-screen bg-white shadow-sm">
             <nav className="mt-5 px-2">
-                <a href="/admin/dashboard" 
-                   className="group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-900 hover:bg-gray-50">
-                    Dashboard
-                </a>
+                {/* Dashboard link removed */}
                 <a href="/admin/categories" 
                    className="group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50">
                     Categories

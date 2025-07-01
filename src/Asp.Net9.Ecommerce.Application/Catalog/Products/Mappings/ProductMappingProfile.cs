@@ -19,12 +19,19 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Mappings
             CreateMap<ProductVariantRequest, ProductVariantInfo>();
             CreateMap<ProductImageRequest, ProductImageInfo>();
 
+            // --- UPDATE PRODUCT MAPPINGS ---
+            CreateMap<UpdateProductRequest, UpdateProductCommand>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore()); // ID will be set from route parameter
+            CreateMap<UpdateProductVariantRequest, ProductVariantUpdateInfo>()
+                .ForMember(dest => dest.SelectedOptions, opt => opt.MapFrom(src => 
+                    src.Variations.ToDictionary(
+                        kvp => Guid.Parse(kvp.Key),   // VariationType ID
+                        kvp => Guid.Parse(kvp.Value)  // Option ID
+                    )));
+
             // --- COMMENTED OUT: Needs refactor for new structure ---
             //CreateMap<VariantTypeRequest, VariantTypeInfo>();
             //CreateMap<VariantOptionRequest, VariantOptionInfo>();
-            //CreateMap<UpdateProductRequest, UpdateProductCommand>()
-            //    .ForMember(dest => dest.Id, opt => opt.Ignore());
-            //CreateMap<UpdateProductVariantRequest, ProductVariantUpdateInfo>();
             //CreateMap<Product, ProductDetailsDto>()
             //    .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category.Name))
             //    .ForMember(dest => dest.MainImage, opt => opt.MapFrom(src => src.MainImage));
@@ -37,11 +44,13 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Mappings
                 .ForMember(dest => dest.VariantCount, opt => opt.MapFrom(src => src.Variants.Count))
                 .ForMember(dest => dest.LowestPrice, opt => opt.MapFrom(src => src.Variants.Any() ? src.Variants.Min(v => v.Price) : src.BasePrice))
                 .ForMember(dest => dest.LowestOldPrice, opt => opt.MapFrom(src =>
-                    src.Variants.Any()
-                        ? src.Variants.OrderBy(v => v.Price).FirstOrDefault().OldPrice
+                    src.Variants.Any() && src.Variants.OrderBy(v => v.Price).First().OldPrice.HasValue
+                        ? src.Variants.OrderBy(v => v.Price).First().OldPrice
                         : (decimal?)null))
                 .ForMember(dest => dest.HasStock, opt => opt.MapFrom(src => src.Variants.Any(v => v.TrackInventory ? v.StockQuantity > 0 : true)))
                 .ForMember(dest => dest.TotalStock, opt => opt.MapFrom(src => src.Variants.Where(v => v.TrackInventory).Sum(v => v.StockQuantity)))
+                .ForMember(dest => dest.AverageRating, opt => opt.MapFrom(src => src.AverageRating))
+                .ForMember(dest => dest.ReviewCount, opt => opt.MapFrom(src => src.ReviewCount))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
                 .ForMember(dest => dest.Slug, opt => opt.MapFrom(src => src.Slug));
@@ -56,7 +65,12 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Mappings
                 .ForMember(dest => dest.TotalStock, opt => opt.MapFrom(src => src.Variants.Where(v => v.TrackInventory).Sum(v => v.StockQuantity)))
                 .ForMember(dest => dest.HasStock, opt => opt.MapFrom(src => src.Variants.Any(v => v.TrackInventory ? v.StockQuantity > 0 : true)))
                 .ForMember(dest => dest.LowestPrice, opt => opt.MapFrom(src => src.Variants.Any() ? src.Variants.Min(v => v.Price) : src.BasePrice))
-                .ForMember(dest => dest.LowestOldPrice, opt => opt.MapFrom(src => src.Variants.Any() ? src.Variants.OrderBy(v => v.Price).FirstOrDefault().OldPrice : (decimal?)null));
+                .ForMember(dest => dest.LowestOldPrice, opt => opt.MapFrom(src => 
+                    src.Variants.Any() && src.Variants.OrderBy(v => v.Price).First().OldPrice.HasValue
+                        ? src.Variants.OrderBy(v => v.Price).First().OldPrice 
+                        : (decimal?)null))
+                .ForMember(dest => dest.AverageRating, opt => opt.MapFrom(src => src.AverageRating))
+                .ForMember(dest => dest.ReviewCount, opt => opt.MapFrom(src => src.ReviewCount));
 
             CreateMap<ProductImage, ProductImageDto>();
 
@@ -66,10 +80,16 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Mappings
             CreateMap<VariantOption, VariantOptionDto>();
 
             CreateMap<ProductVariant, ProductVariantDetailsDto>()
-                .ForMember(dest => dest.SelectedOptions, opt => opt.MapFrom(src => src.SelectedOptions.ToDictionary(
-                    o => o.VariationTypeId,
-                    o => o.Id
-                )));
+                .ForMember(dest => dest.SelectedOptions, opt => opt.MapFrom(src =>
+                    src.SelectedOptions.ToDictionary(
+                        o => o.VariationTypeId,
+                        o => o.Id
+                    )));
+
+            // --- PRODUCT REVIEW MAPPINGS ---
+            CreateMap<ProductReview, ProductReviewDto>()
+                .ForMember(dest => dest.ReviewerName, opt => opt.Ignore()) // Will be handled in query handler
+                .ForMember(dest => dest.IsVerifiedPurchase, opt => opt.MapFrom(src => true)); // Always true since only purchasers can review
         }
     }
 }

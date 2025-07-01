@@ -15,19 +15,21 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
 
         public async Task<Category> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            // Include both subcategories and parent category for complete hierarchy
+            // Include both subcategories, parent category, and variation types for complete hierarchy
             return await _context.Categories
                 .Include(c => c.SubCategories)
                 .Include(c => c.ParentCategory)
+                .Include(c => c.VariationTypes)
                 .FirstOrDefaultAsync(c => c.Id == id && c.DeletedAt == null, cancellationToken);
         }
 
         public async Task<Category> GetBySlugAsync(string slug, CancellationToken cancellationToken = default)
         {
-            // Include both subcategories and parent category for complete hierarchy
+            // Include both subcategories, parent category, and variation types for complete hierarchy
             return await _context.Categories
                 .Include(c => c.SubCategories)
                 .Include(c => c.ParentCategory)
+                .Include(c => c.VariationTypes)
                 .FirstOrDefaultAsync(c => c.Slug == slug && c.DeletedAt == null, cancellationToken);
         }
 

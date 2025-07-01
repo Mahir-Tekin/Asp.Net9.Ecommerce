@@ -85,6 +85,16 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             return Result.Success();
         }
 
+        public Result RemoveOptionById(Guid optionId)
+        {
+            var option = Options.FirstOrDefault(o => o.Id == optionId);
+            if (option == null)
+                return Result.NotFound("Option not found");
+
+            Options.Remove(option);
+            return Result.Success();
+        }
+
         public Result UpdateDisplayName(string displayName)
         {
             var errors = ValidateInputs(Name, displayName);
@@ -111,6 +121,21 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
 
             IsActive = true;
             return Result.Success();
+        }
+
+        public Result UpdateOption(Guid optionId, string value, string displayValue, int sortOrder)
+        {
+            var option = Options.FirstOrDefault(o => o.Id == optionId);
+            if (option == null)
+                return Result.NotFound("Option not found");
+
+            // Check if the new value conflicts with other options (excluding this one)
+            if (Options.Any(o => o.Id != optionId && o.Value == value.Trim().ToLowerInvariant()))
+                return Result.Failure(ErrorResponse.ValidationError(
+                    new List<ValidationError> { new("Value", "This option value already exists") }));
+
+            var updateResult = option.Update(value, displayValue, sortOrder);
+            return updateResult;
         }
 
         private static List<ValidationError> ValidateInputs(string name, string displayName)

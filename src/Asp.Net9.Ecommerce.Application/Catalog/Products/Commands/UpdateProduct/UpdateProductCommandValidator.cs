@@ -57,9 +57,15 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.UpdateProduct
                 .When(x => x.StockQuantity.HasValue)
                 .WithMessage("Stock quantity cannot be negative");
 
-            RuleFor(x => x.Variations)
+            RuleFor(x => x.SelectedOptions)
                 .NotNull()
-                .WithMessage("Variations dictionary cannot be null");
+                .WithMessage("Selected options dictionary cannot be null");
+
+            // Validate that each selected option ID is not empty
+            RuleFor(x => x.SelectedOptions)
+                .Must(options => options.All(kvp => kvp.Key != Guid.Empty && kvp.Value != Guid.Empty))
+                .When(x => x.SelectedOptions != null)
+                .WithMessage("All variation type and option IDs must be valid (non-empty GUIDs)");
         }
     }
-} 
+}

@@ -61,6 +61,7 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
                     .ThenInclude(v => v.SelectedOptions)
                 .Include(p => p.VariantTypes)
                     .ThenInclude(vt => vt.Options)
+                .Include(p => p.Images)
                 .FirstOrDefaultAsync(p => p.Id == id && p.DeletedAt == null, cancellationToken);
         }
 
@@ -196,6 +197,8 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
                 ProductSortBy.PriceDesc => query.OrderByDescending(p => p.BasePrice),
                 ProductSortBy.CreatedAtAsc => query.OrderBy(p => p.CreatedAt),
                 ProductSortBy.CreatedAtDesc => query.OrderByDescending(p => p.CreatedAt),
+                ProductSortBy.RatingAsc => query.OrderBy(p => p.AverageRating),
+                ProductSortBy.RatingDesc => query.OrderByDescending(p => p.AverageRating),
                 _ => query.OrderByDescending(p => p.CreatedAt)
             };
 
@@ -214,6 +217,111 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
                 .Include(v => v.Product)
                 .Where(v => variantIds.Contains(v.Id) && v.Product != null && v.Product.DeletedAt == null)
                 .ToListAsync(cancellationToken);
+        }
+
+        public async Task<bool> HasUserReviewedProductAsync(Guid userId, Guid productId, CancellationToken cancellationToken = default)
+        {
+            return await _context.ProductReviews
+                .AnyAsync(r => r.UserId == userId && r.ProductId == productId && r.DeletedAt == null, cancellationToken);
+        }
+
+        public async Task<Product?> GetByIdWithReviewsAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            return await _context.Products
+                .Include(p => p.Reviews)
+                .FirstOrDefaultAsync(p => p.Id == id && p.DeletedAt == null, cancellationToken);
+        }
+
+        public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            return await _context.Products
+                .AnyAsync(p => p.Id == id && p.DeletedAt == null, cancellationToken);
+        }
+
+        public async Task<(IEnumerable<ProductReview> Reviews, int TotalCount, double AverageRating, ReviewRatingSummary RatingSummary)> 
+            GetProductReviewsAsync(
+                Guid productId,
+                ReviewSortBy sortBy,
+                int pageNumber,
+                int pageSize,
+                CancellationToken cancellationToken = default)
+        {
+            // Base query for reviews without user navigation (to avoid cross-DbContext issues)
+            var baseQuery = _context.ProductReviews
+                .Where(r => r.ProductId == productId && r.DeletedAt == null);
+
+            // Get total count and rating statistics
+            var totalCount = await baseQuery.CountAsync(cancellationToken);
+            
+            // Calculate average rating and rating summary
+            var ratingStats = await baseQuery
+                .GroupBy(r => r.Rating)
+                .Select(g => new { Rating = g.Key, Count = g.Count() })
+                .ToListAsync(cancellationToken);
+
+            var averageRating = totalCount > 0 
+                ? await baseQuery.AverageAsync(r => (double)r.Rating, cancellationToken)
+                : 0.0;
+
+            // Build rating summary
+            var ratingSummary = new ReviewRatingSummary
+            {
+                FiveStars = ratingStats.FirstOrDefault(r => r.Rating == 5)?.Count ?? 0,
+                FourStars = ratingStats.FirstOrDefault(r => r.Rating == 4)?.Count ?? 0,
+                ThreeStars = ratingStats.FirstOrDefault(r => r.Rating == 3)?.Count ?? 0,
+                TwoStars = ratingStats.FirstOrDefault(r => r.Rating == 2)?.Count ?? 0,
+                OneStar = ratingStats.FirstOrDefault(r => r.Rating == 1)?.Count ?? 0
+            };
+
+            // Apply sorting
+            var sortedQuery = sortBy switch
+            {
+                ReviewSortBy.Newest => baseQuery.OrderByDescending(r => r.CreatedAt),
+                ReviewSortBy.Oldest => baseQuery.OrderBy(r => r.CreatedAt),
+                ReviewSortBy.RatingHigh => baseQuery.OrderByDescending(r => r.Rating).ThenByDescending(r => r.CreatedAt),
+                ReviewSortBy.RatingLow => baseQuery.OrderBy(r => r.Rating).ThenByDescending(r => r.CreatedAt),
+                ReviewSortBy.MostHelpful => baseQuery.OrderByDescending(r => r.HelpfulVotes).ThenByDescending(r => r.CreatedAt),
+                ReviewSortBy.LeastHelpful => baseQuery.OrderBy(r => r.HelpfulVotes).ThenByDescending(r => r.CreatedAt),
+                _ => baseQuery.OrderByDescending(r => r.CreatedAt)
+            };
+
+            // Apply pagination
+            var reviews = await sortedQuery
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            return (reviews, totalCount, averageRating, ratingSummary);
+        }
+
+        // Vote-related methods
+        public async Task<ReviewVote?> GetVoteByReviewAndUserAsync(Guid reviewId, Guid userId, CancellationToken cancellationToken = default)
+        {
+            return await _context.ReviewVotes
+                .FirstOrDefaultAsync(v => v.ReviewId == reviewId && v.UserId == userId, cancellationToken);
+        }
+
+        public async Task AddVoteAsync(ReviewVote vote, CancellationToken cancellationToken = default)
+        {
+            await _context.ReviewVotes.AddAsync(vote, cancellationToken);
+        }
+
+        public async Task UpdateVoteAsync(ReviewVote vote, CancellationToken cancellationToken = default)
+        {
+            _context.ReviewVotes.Update(vote);
+            await Task.CompletedTask;
+        }
+
+        public async Task RemoveVoteAsync(ReviewVote vote, CancellationToken cancellationToken = default)
+        {
+            _context.ReviewVotes.Remove(vote);
+            await Task.CompletedTask;
+        }
+
+        // Review management methods
+        public async Task AddReviewAsync(ProductReview review, CancellationToken cancellationToken = default)
+        {
+            await _context.ProductReviews.AddAsync(review, cancellationToken);
         }
     }
 }

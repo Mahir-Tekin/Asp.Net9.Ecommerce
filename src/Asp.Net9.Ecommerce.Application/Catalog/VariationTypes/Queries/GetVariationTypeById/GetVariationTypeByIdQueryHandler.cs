@@ -21,7 +21,7 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.VariationTypes.Queries.GetVaria
         {
             try
             {
-                var variationType = await _unitOfWork.VariationTypes.GetByIdAsync(request.Id, cancellationToken);
+                var variationType = await _unitOfWork.VariationTypes.GetByIdWithOptionsAsync(request.Id, cancellationToken);
                 if (variationType == null)
                     return Result.NotFound<VariationTypeResponse>($"Variation type with ID '{request.Id}' was not found");
 
