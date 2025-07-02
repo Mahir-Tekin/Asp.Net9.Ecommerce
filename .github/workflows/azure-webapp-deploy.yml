@@ -38,8 +38,3 @@ jobs:
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: ./publish
 
-# Instructions:
-# 1. Set the following secrets in your GitHub repository:
-#    - AZURE_WEBAPP_NAME: Your Azure Web App name
-#    - AZURE_WEBAPP_PUBLISH_PROFILE: The publish profile XML from Azure portal
-# 2. Adjust paths if your project structure is different.
