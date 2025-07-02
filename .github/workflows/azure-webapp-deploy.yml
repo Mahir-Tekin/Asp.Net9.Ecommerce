@@ -1,0 +1,45 @@
+# GitHub Actions workflow for deploying ASP.NET Core app to Azure Web App
+# Save as .github/workflows/azure-webapp-deploy.yml
+
+name: Deploy ASP.NET Core to Azure Web App
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore src/Asp.Net9.Ecommerce.API/Asp.Net9.Ecommerce.API.csproj
+
+      - name: Build
+        run: dotnet build src/Asp.Net9.Ecommerce.API/Asp.Net9.Ecommerce.API.csproj --configuration Release --no-restore
+
+      - name: Publish
+        run: dotnet publish src/Asp.Net9.Ecommerce.API/Asp.Net9.Ecommerce.API.csproj --configuration Release --output ./publish --no-build
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          slot-name: 'Production'
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./publish
+
+# Instructions:
+# 1. Set the following secrets in your GitHub repository:
+#    - AZURE_WEBAPP_NAME: Your Azure Web App name
+#    - AZURE_WEBAPP_PUBLISH_PROFILE: The publish profile XML from Azure portal
+# 2. Adjust paths if your project structure is different.
