@@ -30,7 +30,7 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Configurations
                 .HasPrecision(18, 2);
 
             // Add check constraint for Price
-            builder.ToTable(t => t.HasCheckConstraint("CK_ProductVariants_Price", "Price IS NULL OR Price > 0"));
+            builder.ToTable(t => t.HasCheckConstraint("CK_ProductVariants_Price", "\"Price\" IS NULL OR \"Price\" > 0"));
 
             // Inventory
             builder.Property("_stockQuantity")
@@ -38,13 +38,13 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Configurations
                 .IsRequired();
 
             // Add check constraint for StockQuantity
-            builder.ToTable(t => t.HasCheckConstraint("CK_ProductVariants_StockQuantity", "StockQuantity >= 0"));
+            builder.ToTable(t => t.HasCheckConstraint("CK_ProductVariants_StockQuantity", "\"StockQuantity\" >= 0"));
 
             builder.Property(v => v.MinStockThreshold)
                 .IsRequired();
 
             // Add check constraint for MinStockThreshold
-            builder.ToTable(t => t.HasCheckConstraint("CK_ProductVariants_MinStockThreshold", "MinStockThreshold >= 0"));
+            builder.ToTable(t => t.HasCheckConstraint("CK_ProductVariants_MinStockThreshold", "\"MinStockThreshold\" >= 0"));
 
             builder.Property(v => v.IsActive)
                 .IsRequired();
@@ -60,11 +60,11 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Configurations
                 .UsingEntity(j => j.ToTable("ProductVariantOptions"));
 
             // Improved Indexes
-            builder.HasIndex(v => v.SKU).IsUnique().HasFilter("DeletedAt IS NULL"); // Unique SKU only for active records
+            builder.HasIndex(v => v.SKU).IsUnique().HasFilter("\"DeletedAt\" IS NULL"); // Unique SKU only for active records
             builder.HasIndex(v => v.ProductId);
             builder.HasIndex(v => v.IsActive);
             builder.HasIndex("_stockQuantity"); // For inventory queries
-            builder.HasIndex(v => new { v.IsActive, v.DeletedAt }); // Composite index for active variants
+            builder.HasIndex(v => new { v.IsActive, v.DeletedAt }).HasDatabaseName("IX_ProductVariants_IsActive_DeletedAt"); // Composite index for active variants
             builder.HasIndex(v => new { v.ProductId, v.IsActive }); // For querying active variants of a product
 
             builder.Property(v => v.RowVersion)

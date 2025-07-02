@@ -81,7 +81,7 @@ namespace Asp.Net9.Ecommerce.Infrastructure
             IConfiguration configuration)
         {
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(
+                options.UseNpgsql(
                     configuration.GetConnectionString("DefaultConnection"),
                     b => b.MigrationsAssembly("Asp.Net9.Ecommerce.Infrastructure")
                          .MigrationsHistoryTable("__EFMigrationsHistoryApp")));

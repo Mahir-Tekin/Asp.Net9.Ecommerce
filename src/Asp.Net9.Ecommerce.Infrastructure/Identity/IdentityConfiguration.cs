@@ -14,7 +14,7 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Identity
         {
             // Add DbContext
             services.AddDbContext<AppIdentityDbContext>(options =>
-                options.UseSqlServer(
+                options.UseNpgsql(
                     configuration.GetConnectionString("DefaultConnection"),
                     b => b.MigrationsAssembly(typeof(AppIdentityDbContext).Assembly.FullName)));
 
@@ -43,4 +43,4 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Identity
             return services;
         }
     }
-} 
+}
