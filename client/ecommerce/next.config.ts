@@ -20,17 +20,17 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
+  images: {
+    domains: [
+      'localhost',
+      'mahir-project-ecommerce.azurewebsites.net'
+    ],
+  },
 };
 
 // Configure Node.js to accept self-signed certificates in development
 if (process.env.NODE_ENV !== 'production') {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }
-
-module.exports = {
-  images: {
-    domains: ['localhost'],
-  },
-};
 
 export default nextConfig;

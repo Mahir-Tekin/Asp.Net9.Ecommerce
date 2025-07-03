@@ -2,10 +2,36 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Define path configurations
-const PUBLIC_PATHS = ['/', '/login', '/register','/cart'];
-const PUBLIC_DYNAMIC_PATHS = [/^\/product\/[^/]+$/]; // Add dynamic product details route
+const PUBLIC_PATHS = ['/', '/login', '/register', '/cart'];
+const PUBLIC_DYNAMIC_PATHS = [/^\/product\/[^/]+$/]; // Dynamic product details route
 const ADMIN_PATHS = ['/admin'];
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
+
+// Helper function to verify user role
+async function verifyUserRole(token: string): Promise<{ isValid: boolean; isAdmin: boolean; userData?: any }> {
+    try {
+        const response = await fetch(`${API_URL}/api/Auth/me`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            return { isValid: false, isAdmin: false };
+        }
+
+        const userData = await response.json();
+        return {
+            isValid: true,
+            isAdmin: userData.roles?.includes('Admin') || false,
+            userData
+        };
+    } catch (error) {
+        console.error('Error verifying user role:', error);
+        return { isValid: false, isAdmin: false };
+    }
+}
 
 export async function middleware(request: NextRequest) {
     const path = request.nextUrl.pathname;
@@ -18,70 +44,33 @@ export async function middleware(request: NextRequest) {
                         path === '/favicon.ico';
     const isAdminPath = ADMIN_PATHS.some(adminPath => path.startsWith(adminPath));
     
-    // Get the token from cookies
+    // Get the token from cookies (for server-side verification)
     const token = request.cookies.get('accessToken')?.value;
 
-    // Allow public paths without token
+    // Handle public paths
     if (isPublicPath) {
         if (token) {
-            // Check user role
-            try {
-                const response = await fetch(`${API_URL}/api/Auth/me`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (response.ok) {
-                    const userData = await response.json();
-                    if (userData.roles.includes('Admin') && (path === '/' || path === '/login' || path === '/register')) {
-                        return NextResponse.redirect(new URL('/admin/products', request.url));
-                    }
+            // Verify token and check user role
+            const { isValid, isAdmin } = await verifyUserRole(token);
+            
+            if (isValid && isAdmin) {
+                // Redirect admin users from public pages to admin dashboard
+                if (path === '/' || path === '/login' || path === '/register') {
+                    return NextResponse.redirect(new URL('/admin/dashboard', request.url));
                 }
-            } catch  {
-                // Ignore error, just proceed
+            } else if (isValid) {
+                // Redirect authenticated non-admin users away from auth pages
+                if (path === '/login' || path === '/register') {
+                    return NextResponse.redirect(new URL('/', request.url));
+                }
             }
-            // Only redirect to home if trying to access login/register while logged in (non-admin)
-            if (path === '/login' || path === '/register') {
-                return NextResponse.redirect(new URL('/', request.url));
-            }
+            // If token is invalid, let them access public pages (will be handled by AuthContext)
         }
         return NextResponse.next();
     }
 
-    // Check authentication for protected routes
-    if (!token) {
-        return NextResponse.redirect(new URL('/login', request.url));
-    }
-
-    // Additional role check for admin paths
-    if (isAdminPath) {
-        try {
-            const response = await fetch(`${API_URL}/api/Auth/me`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            if (!response.ok) {
-                return NextResponse.redirect(new URL('/login', request.url));
-            }
-
-            const userData = await response.json();
-            
-            if (!userData.roles.includes('Admin')) {
-                // If user is authenticated but not admin, redirect to home
-                return NextResponse.redirect(new URL('/', request.url));
-            }
-        } catch (error) {
-            console.error('Error checking user role:', error);
-            return NextResponse.redirect(new URL('/login', request.url));
-        }
-    }
-
-    // Allow the request to proceed
+    // For protected routes, we'll let the client-side handle auth checks
+    // since we're using localStorage tokens for the portfolio project
     return NextResponse.next();
 }
 

@@ -143,21 +143,10 @@ const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({ images, set
                   sizes="128px"
                   onError={(e) => {
                     console.error('Image failed to load:', src);
-                    // Show a simple gray placeholder instead
                     const target = e.currentTarget;
-                    target.style.display = 'none';
-                    const placeholder = target.parentElement?.querySelector('.placeholder');
-                    if (placeholder) {
-                      (placeholder as HTMLElement).style.display = 'flex';
-                    }
+                    target.src = '/placeholder.svg';
                   }}
                 />
-                <div 
-                  className="placeholder absolute inset-0 bg-gray-200 flex items-center justify-center text-gray-500 text-xs" 
-                  style={{ display: 'none' }}
-                >
-                  Image Error
-                </div>
               </div>
               <input
                 type="text"
