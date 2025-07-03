@@ -30,22 +30,30 @@ const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({ images, set
             Authorization: `Bearer ${token}`,
           },
         });
+        
         let url = response.data;
-        // Always store only the relative path (if absolute, convert to relative)
+        // Always store only the relative path (without backend URL)
         let relativeUrl = url;
+        
         if (url.startsWith('http')) {
           // Remove API_URL prefix if present
           if (url.startsWith(API_URL)) {
             relativeUrl = url.substring(API_URL.length);
           } else {
-            // fallback: try to extract path
+            // Extract pathname from full URL
             try {
-              const u = new URL(url);
-              relativeUrl = u.pathname + u.search + u.hash;
+              const urlObj = new URL(url);
+              relativeUrl = urlObj.pathname;
             } catch {
-              // fallback to original url
+              // If URL parsing fails, use the original URL
+              relativeUrl = url;
             }
           }
+        }
+        
+        // Ensure the relative URL starts with /
+        if (!relativeUrl.startsWith('/') && !relativeUrl.startsWith('http')) {
+          relativeUrl = '/' + relativeUrl;
         }
         setImages([
           ...images,
@@ -104,12 +112,53 @@ const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({ images, set
       {error && <div className="text-red-500">{error}</div>}
       <div className="flex flex-wrap gap-4 mt-2">
         {images.map((img, idx) => {
-          // Always display using full URL if not absolute
-          const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
-          const src = img.url.startsWith('http') ? img.url : `${API_URL}${img.url}`;
+          // Handle image URL construction properly
+          const getImageSrc = (url: string) => {
+            // If URL is already absolute (starts with http/https), use as is
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+              return url;
+            }
+            
+            // If URL starts with /, it's an absolute path from server root
+            if (url.startsWith('/')) {
+              const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
+              return `${API_URL}${url}`;
+            }
+            
+            // If URL is relative, prepend the API URL and /api path
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
+            return `${API_URL}/${url.startsWith('/') ? url.slice(1) : url}`;
+          };
+          
+          const src = getImageSrc(img.url);
+          
           return (
-            <div key={img.url} className="border rounded p-2 flex flex-col items-center w-40">
-              <Image src={src} alt={img.altText || 'Product image'} width={128} height={128} className="w-32 h-32 object-cover mb-2" />
+            <div key={`${img.url}-${idx}`} className="border rounded p-2 flex flex-col items-center w-40">
+              <div className="w-32 h-32 mb-2 relative bg-gray-100 rounded overflow-hidden">
+                <Image 
+                  src={src} 
+                  alt={img.altText || 'Product image'} 
+                  fill
+                  className="object-cover"
+                  sizes="128px"
+                  onError={(e) => {
+                    console.error('Image failed to load:', src);
+                    // Show a simple gray placeholder instead
+                    const target = e.currentTarget;
+                    target.style.display = 'none';
+                    const placeholder = target.parentElement?.querySelector('.placeholder');
+                    if (placeholder) {
+                      (placeholder as HTMLElement).style.display = 'flex';
+                    }
+                  }}
+                />
+                <div 
+                  className="placeholder absolute inset-0 bg-gray-200 flex items-center justify-center text-gray-500 text-xs" 
+                  style={{ display: 'none' }}
+                >
+                  Image Error
+                </div>
+              </div>
               <input
                 type="text"
                 placeholder="Alt text"

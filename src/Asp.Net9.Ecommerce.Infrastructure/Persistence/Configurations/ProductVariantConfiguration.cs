@@ -67,8 +67,12 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Configurations
             builder.HasIndex(v => new { v.IsActive, v.DeletedAt }).HasDatabaseName("IX_ProductVariants_IsActive_DeletedAt"); // Composite index for active variants
             builder.HasIndex(v => new { v.ProductId, v.IsActive }); // For querying active variants of a product
 
+            // PostgreSQL-compatible row versioning using xmin system column
             builder.Property(v => v.RowVersion)
-                .IsRowVersion();
+                .HasColumnType("bytea")
+                .HasDefaultValueSql("'\\x00000001'::bytea")
+                .ValueGeneratedOnAddOrUpdate()
+                .IsConcurrencyToken();
         }
     }
 }

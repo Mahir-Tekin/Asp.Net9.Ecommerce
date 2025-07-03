@@ -10,6 +10,9 @@ export default function ActiveFiltersDisplay() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
 
+  // Simple debug log to confirm component is rendering
+  console.log('🔍 ActiveFiltersDisplay is rendering!', new Date().toISOString());
+
   // Fetch categories for display names
   useEffect(() => {
     async function loadCategories() {
@@ -73,8 +76,35 @@ export default function ActiveFiltersDisplay() {
     filters.sortBy ||
     (filters.variationFilters && Object.keys(filters.variationFilters).length > 0);
 
+  // Debug logging
+  console.log('ActiveFiltersDisplay Debug:', {
+    filters,
+    hasActiveFilters,
+    searchTerm: filters.searchTerm,
+    categoryId: filters.categoryId,
+    minPrice: filters.minPrice,
+    maxPrice: filters.maxPrice,
+    sortBy: filters.sortBy,
+    variationFilters: filters.variationFilters,
+    variationFiltersKeys: filters.variationFilters ? Object.keys(filters.variationFilters) : []
+  });
+
+  // Show something even when no active filters (for debugging)
   if (!hasActiveFilters) {
-    return null;
+    return (
+      <div className="bg-yellow-50 rounded-lg border border-yellow-200 p-3 mb-6">
+        <p className="text-sm text-yellow-800">
+          🐛 ActiveFiltersDisplay: No active filters detected
+        </p>
+        <p className="text-xs text-yellow-600 mt-1">
+          Search: "{filters.searchTerm || 'empty'}" | 
+          Category: {filters.categoryId || 'none'} | 
+          MinPrice: {filters.minPrice || 'none'} | 
+          MaxPrice: {filters.maxPrice || 'none'} | 
+          Sort: {filters.sortBy || 'none'}
+        </p>
+      </div>
+    );
   }
 
   return (
