@@ -1,7 +1,7 @@
 // API helper for admin ProductList
 import { AdminProductListResponse } from './ProductList.types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
 
 export async function fetchAdminProductList({
   page = 1,
@@ -21,7 +21,7 @@ export async function fetchAdminProductList({
     ...(searchTerm ? { searchTerm } : {}),
     ...(categoryId ? { categoryId } : {})
   });
-  const res = await fetch(`${API_URL}/Products?${params.toString()}`, {
+  const res = await fetch(`${API_URL}/api/Products?${params.toString()}`, {
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {})

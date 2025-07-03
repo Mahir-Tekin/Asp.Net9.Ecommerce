@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { AuthResponse } from '@/types/auth';
 
 // Base API URL for all requests
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
 
 // Token refresh state management
 let isRefreshing = false;

@@ -2,7 +2,7 @@
 
 import { Review, ReviewsResponse } from './ProductDetails.types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
 
 export async function fetchProductReviews({
   productId,
@@ -24,7 +24,7 @@ export async function fetchProductReviews({
     params.append('sortBy', sortBy);
   }
 
-  const res = await fetch(`${API_URL}/Products/${productId}/reviews?${params.toString()}`);
+  const res = await fetch(`${API_URL}/api/Products/${productId}/reviews?${params.toString()}`);
   if (!res.ok) throw new Error('Failed to fetch product reviews');
   return res.json();
 }

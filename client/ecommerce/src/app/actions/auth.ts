@@ -181,7 +181,7 @@ export async function getMe(): Promise<User | null> {
         const cookieStore = await cookies();
         const accessToken = cookieStore.get('accessToken')?.value;
 
-        const response = await fetch(`${API_URL}/Auth/me`, {
+        const response = await fetch(`${API_URL}/api/Auth/me`, {
             headers: {
                 'Content-Type': 'application/json',
                 ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {})

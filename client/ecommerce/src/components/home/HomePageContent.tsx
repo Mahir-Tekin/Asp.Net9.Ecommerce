@@ -25,7 +25,7 @@ export default function HomePageContent() {
   useEffect(() => {
     async function fetchFeaturedProducts() {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api'}/Products?pageSize=8&pageNumber=1`);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001'}/api/Products?pageSize=8&pageNumber=1`);
         if (res.ok) {
           const data = await res.json();
           setFeaturedProducts(data.items || data || []);

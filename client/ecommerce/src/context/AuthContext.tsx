@@ -12,7 +12,7 @@ import {
 import axios, { AxiosInstance } from 'axios';
 import { useRouter } from 'next/navigation';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 

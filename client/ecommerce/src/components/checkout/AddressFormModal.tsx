@@ -33,7 +33,7 @@ export default function AddressFormModal({ onSuccess }: AddressFormModalProps) {
     setError(null);
     try {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api'}/Addresses`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001'}/api/Addresses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -87,7 +87,7 @@ export default function EditProduct({ id, onSuccess, onCancel }: EditProductProp
       setSaving(true);
       setError(null);
       
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : undefined;
       
       // Prepare variants - remove price field when useCustomPrice is false
@@ -106,7 +106,7 @@ export default function EditProduct({ id, onSuccess, onCancel }: EditProductProp
         variants: preparedVariants
       };
       
-      const response = await fetch(`${API_URL}/Products/${id}`, {
+      const response = await fetch(`${API_URL}/api/Products/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -35,10 +35,10 @@ export interface CategoryDetails {
   variationTypes: VariationType[];
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
 
 export async function fetchCategoryDetails(categoryId: string): Promise<CategoryDetails> {
-  const res = await fetch(`${API_URL}/Categories/${categoryId}`);
+  const res = await fetch(`${API_URL}/api/Categories/${categoryId}`);
   if (!res.ok) throw new Error('Failed to fetch category details');
   return res.json();
 }

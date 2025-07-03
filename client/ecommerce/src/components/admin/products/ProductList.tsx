@@ -51,9 +51,9 @@ export default function ProductList({ onSelect, onCreate }: ProductListProps) {
   useEffect(() => {
     async function fetchCategories() {
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api';
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
         const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : undefined;
-        const res = await fetch(`${API_URL}/Categories/admin`, {
+        const res = await fetch(`${API_URL}/api/Categories/admin`, {
           headers: {
             'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {})

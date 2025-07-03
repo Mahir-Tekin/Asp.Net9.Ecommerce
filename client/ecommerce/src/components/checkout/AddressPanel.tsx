@@ -4,7 +4,7 @@ import AddressCard from './AddressCard';
 import AddressFormModal from './AddressFormModal';
 import type { Address } from '@/types/address';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
 
 interface AddressPanelProps {
   onSelect: (address: Address) => void;
@@ -20,7 +20,7 @@ export default function AddressPanel({ onSelect, selectedAddressId }: AddressPan
   const fetchAddresses = async () => {
     setLoading(true);
     const token = localStorage.getItem('accessToken');
-    const res = await fetch(`${API_URL}/Addresses`, {
+    const res = await fetch(`${API_URL}/api/Addresses`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     const data = await res.json();

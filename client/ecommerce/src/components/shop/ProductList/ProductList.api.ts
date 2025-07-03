@@ -24,7 +24,7 @@ export interface ShopProductListResponse {
   hasPreviousPage?: boolean;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
 
 export async function fetchShopProductList({
   page = 1,
@@ -77,7 +77,7 @@ export async function fetchShopProductList({
     });
   }
   
-  const res = await fetch(`${API_URL}/Products?${params.toString()}`);
+  const res = await fetch(`${API_URL}/api/Products?${params.toString()}`);
   if (!res.ok) throw new Error('Failed to fetch product list');
   return res.json();
 }
