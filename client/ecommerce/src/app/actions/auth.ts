@@ -113,7 +113,7 @@ export async function login(credentials: LoginRequest): Promise<AuthActionRespon
 
 export async function register(userData: RegisterRequest): Promise<AuthActionResponse> {
     try {
-        const response = await fetch(`${API_URL}/Auth/register`, {
+        const response = await fetch(`${API_URL}/api/Auth/register`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -138,7 +138,7 @@ export async function logout(): Promise<void> {
 
 export async function refreshTokens(): Promise<boolean> {
     try {
-        const response = await fetch(`${API_URL}/Auth/refresh`, {
+        const response = await fetch(`${API_URL}/api/Auth/refresh`, {
             method: 'POST',
             credentials: 'include', // Important for cookies
             headers: {

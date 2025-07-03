@@ -58,7 +58,7 @@ export async function middleware(request: NextRequest) {
     // Additional role check for admin paths
     if (isAdminPath) {
         try {
-            const response = await fetch(`${API_URL}/Auth/me`, {
+            const response = await fetch(`${API_URL}/api/Auth/me`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
