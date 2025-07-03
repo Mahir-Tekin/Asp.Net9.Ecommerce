@@ -68,7 +68,7 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.VariationTypes.Commands.UpdateV
                         return updateOptionResult;
                 }
 
-                // Then, handle new options by creating them separately and adding to DbContext directly
+                // Then, handle new options by creating them and ensuring proper EF Core tracking
                 var newOptions = request.Options.Where(o => !o.Id.HasValue).OrderBy(o => o.SortOrder).ToList();
                 
                 foreach (var requestOption in newOptions)
@@ -83,8 +83,11 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.VariationTypes.Commands.UpdateV
                     if (optionResult.IsFailure)
                         return Result.Failure(optionResult.Error);
 
-                    // Add the new option to the collection - EF Core will track it as Added
+                    // Add the new option to the collection AND explicitly track it in DbContext
                     variationType.Options.Add(optionResult.Value);
+                    
+                    // Explicitly add new options to the repository to ensure proper EF Core tracking
+                    _unitOfWork.VariationTypes.AddOption(optionResult.Value);
                 }
 
                 // Save all changes in one transaction

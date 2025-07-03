@@ -32,7 +32,7 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
         public Product? Product { get; private set; }
 
         // RowVersion property for optimistic concurrency control
-        public byte[] RowVersion { get; set; }
+        public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
         protected ProductVariant() { } // For EF Core
 
@@ -242,6 +242,22 @@ namespace Asp.Net9.Ecommerce.Domain.Catalog
             if (_stockQuantity < quantity)
                 throw new InvalidOperationException($"Not enough stock. Available: {_stockQuantity}, requested: {quantity}");
             _stockQuantity -= quantity;
+        }
+
+        /// <summary>
+        /// Updates the old price when the base price of the product changes.
+        /// This is used for variants that inherit the base price (don't have their own custom price).
+        /// </summary>
+        /// <param name="oldBasePrice">The previous base price before the change</param>
+        /// <param name="newBasePrice">The new base price after the change</param>
+        public void UpdateOldPriceForBasePriceChange(decimal oldBasePrice, decimal newBasePrice)
+        {
+            // Only update if this variant inherits from base price (has no custom price)
+            if (!_price.HasValue && newBasePrice < oldBasePrice)
+            {
+                // Set the old price to the previous base price to preserve discount information
+                OldPrice = oldBasePrice;
+            }
         }
 
         private static List<ValidationError> ValidateInputs(string sku, string name, decimal? price, int minStockThreshold)

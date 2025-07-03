@@ -44,8 +44,8 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Mappings
                 .ForMember(dest => dest.VariantCount, opt => opt.MapFrom(src => src.Variants.Count))
                 .ForMember(dest => dest.LowestPrice, opt => opt.MapFrom(src => src.Variants.Any() ? src.Variants.Min(v => v.Price) : src.BasePrice))
                 .ForMember(dest => dest.LowestOldPrice, opt => opt.MapFrom(src =>
-                    src.Variants.Any() && src.Variants.OrderBy(v => v.Price).First().OldPrice.HasValue
-                        ? src.Variants.OrderBy(v => v.Price).First().OldPrice
+                    src.Variants.Any() && src.Variants.Any(v => v.OldPrice.HasValue)
+                        ? src.Variants.Where(v => v.OldPrice.HasValue).Min(v => v.OldPrice)
                         : (decimal?)null))
                 .ForMember(dest => dest.HasStock, opt => opt.MapFrom(src => src.Variants.Any(v => v.TrackInventory ? v.StockQuantity > 0 : true)))
                 .ForMember(dest => dest.TotalStock, opt => opt.MapFrom(src => src.Variants.Where(v => v.TrackInventory).Sum(v => v.StockQuantity)))
@@ -66,8 +66,8 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Mappings
                 .ForMember(dest => dest.HasStock, opt => opt.MapFrom(src => src.Variants.Any(v => v.TrackInventory ? v.StockQuantity > 0 : true)))
                 .ForMember(dest => dest.LowestPrice, opt => opt.MapFrom(src => src.Variants.Any() ? src.Variants.Min(v => v.Price) : src.BasePrice))
                 .ForMember(dest => dest.LowestOldPrice, opt => opt.MapFrom(src => 
-                    src.Variants.Any() && src.Variants.OrderBy(v => v.Price).First().OldPrice.HasValue
-                        ? src.Variants.OrderBy(v => v.Price).First().OldPrice 
+                    src.Variants.Any() && src.Variants.Any(v => v.OldPrice.HasValue)
+                        ? src.Variants.Where(v => v.OldPrice.HasValue).Min(v => v.OldPrice) 
                         : (decimal?)null))
                 .ForMember(dest => dest.AverageRating, opt => opt.MapFrom(src => src.AverageRating))
                 .ForMember(dest => dest.ReviewCount, opt => opt.MapFrom(src => src.ReviewCount));

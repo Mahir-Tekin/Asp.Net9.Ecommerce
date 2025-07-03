@@ -1,4 +1,5 @@
 using Asp.Net9.Ecommerce.Application.Common.Interfaces;
+using Asp.Net9.Ecommerce.Domain.Catalog;
 using Asp.Net9.Ecommerce.Shared.Results;
 using MediatR;
 
@@ -28,7 +29,7 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.UpdateProduct
                 }
 
                 // 2. Update basic product information
-                var updateResult = product.Update(request.Name, request.Description);
+                var updateResult = product.Update(request.Name, request.Description ?? string.Empty);
                 if (updateResult.IsFailure)
                 {
                     await _unitOfWork.RollbackTransactionAsync(cancellationToken);
@@ -38,11 +39,18 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Products.Commands.UpdateProduct
                 // 3. Update price if changed
                 if (product.BasePrice != request.BasePrice)
                 {
+                    var oldBasePrice = product.BasePrice;
                     var priceUpdateResult = product.UpdatePrice(request.BasePrice);
                     if (priceUpdateResult.IsFailure)
                     {
                         await _unitOfWork.RollbackTransactionAsync(cancellationToken);
                         return priceUpdateResult;
+                    }
+
+                    // Update OldPrice for variants that inherit from base price
+                    foreach (var variant in product.Variants)
+                    {
+                        variant.UpdateOldPriceForBasePriceChange(oldBasePrice, request.BasePrice);
                     }
                 }
 

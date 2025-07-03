@@ -78,7 +78,12 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence.Repositories
 
         public void AddOption(VariantOption option)
         {
-            _context.Set<VariantOption>().Add(option);
+            // Check if the option is already being tracked
+            var entry = _context.Entry(option);
+            if (entry.State == EntityState.Detached)
+            {
+                _context.Set<VariantOption>().Add(option);
+            }
         }
     }
 }
