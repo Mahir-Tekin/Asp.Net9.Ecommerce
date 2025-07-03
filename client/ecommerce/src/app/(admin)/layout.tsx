@@ -9,7 +9,6 @@ export default function AdminLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const { user } = useAuth();
 
     return (
         <div className="min-h-screen bg-gray-100">

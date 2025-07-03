@@ -1,13 +1,13 @@
 'use client';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import AddressPanel from '@/components/checkout/AddressPanel';
 import OrderSummary from '@/components/checkout/OrderSummary';
 import type { Address } from '@/types/address';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 
-export default function CheckoutPage() {
+function CheckoutPageContent() {
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const { cartItems, clearCart } = useCart();
   const router = useRouter();
@@ -59,7 +59,7 @@ export default function CheckoutPage() {
       });
       if (!res.ok) throw new Error('Order placement failed');
       clearCart();
-      router.push('/order-confirmation'); // You can create this page for confirmation
+      router.push('/order-confirmation');
     } catch (err: any) {
       setError(err.message || 'Unknown error');
     } finally {
@@ -86,5 +86,13 @@ export default function CheckoutPage() {
       </button>
       <Link href="/cart" className="text-green-600 hover:underline block mt-4">Back to Cart</Link>
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CheckoutPageContent />
+    </Suspense>
   );
 }

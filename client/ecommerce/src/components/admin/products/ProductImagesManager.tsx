@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import Image from 'next/image';
 import { ProductImage } from './types';
 import axios from 'axios';
 
@@ -108,7 +109,7 @@ const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({ images, set
           const src = img.url.startsWith('http') ? img.url : `${API_URL}${img.url}`;
           return (
             <div key={img.url} className="border rounded p-2 flex flex-col items-center w-40">
-              <img src={src} alt={img.altText || 'Product image'} className="w-32 h-32 object-cover mb-2" />
+              <Image src={src} alt={img.altText || 'Product image'} width={128} height={128} className="w-32 h-32 object-cover mb-2" />
               <input
                 type="text"
                 placeholder="Alt text"

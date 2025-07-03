@@ -57,7 +57,7 @@ export default function RegisterPage() {
 
             setError(result.error || null);
             setValidationErrors(result.validationErrors || []);
-        } catch (err) {
+        } catch {
             setError('An unexpected error occurred during registration');
             setValidationErrors([]);
         }

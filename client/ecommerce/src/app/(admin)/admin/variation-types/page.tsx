@@ -30,7 +30,11 @@ export default function VariationTypesPage() {
             <div style={{ flex: 2 }}>
                 {view === "create" && <CreateVariationType onSuccess={refreshList} />}
                 {view === "update" && selectedId && (
-                    <UpdateVariationType id={selectedId} onSuccess={refreshList} />
+                    <UpdateVariationType 
+                        id={selectedId} 
+                        onSuccess={refreshList} 
+                        onCancel={() => setView("list")}
+                    />
                 )}
                 {view === "details" && selectedId && (
                     <VariationTypeDetails

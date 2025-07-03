@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ArrowLeftIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 interface ProductVariant {
@@ -39,30 +39,21 @@ export default function EditProduct({ id, onSuccess, onCancel }: EditProductProp
     variants: []
   });
 
-  useEffect(() => {
-    fetchProduct();
-  }, [id]);
-
-  const fetchProduct = async () => {
+  const fetchProduct = useCallback(async () => {
     try {
       setLoading(true);
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api';
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : undefined;
-      
       const response = await fetch(`${API_URL}/Products/${id}`, {
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         }
       });
-      
       if (!response.ok) {
         throw new Error('Failed to fetch product');
       }
-      
       const product = await response.json();
-      
-      // Map the fetched product to the update format
       setFormData({
         name: product.name || '',
         description: product.description || '',
@@ -75,7 +66,7 @@ export default function EditProduct({ id, onSuccess, onCancel }: EditProductProp
           stockQuantity: variant.stockQuantity || 0,
           trackInventory: variant.trackInventory ?? true,
           variations: variant.selectedOptions || {},
-          useCustomPrice: variant.price !== product.basePrice // Determine if using custom price
+          useCustomPrice: variant.price !== product.basePrice
         })) || []
       });
     } catch (err) {
@@ -83,7 +74,11 @@ export default function EditProduct({ id, onSuccess, onCancel }: EditProductProp
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchProduct();
+  }, [id, fetchProduct]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

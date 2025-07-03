@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { fetchProductReviews, voteOnReview } from './ProductReviews.api';
 import { Review, ReviewsResponse } from './ProductDetails.types';
 import Pagination from '../shop/pagination/Pagination';
@@ -28,13 +28,7 @@ export default function ProductReviews({
   const pageSize = 5;
   const { isAuthenticated } = useAuth();
 
-  useEffect(() => {
-    if (productId) {
-      loadReviews();
-    }
-  }, [productId, currentPage]);
-
-  const loadReviews = async () => {
+  const loadReviews = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetchProductReviews({
@@ -48,7 +42,13 @@ export default function ProductReviews({
     } finally {
       setLoading(false);
     }
-  };
+  }, [productId, currentPage, pageSize]);
+
+  useEffect(() => {
+    if (productId) {
+      loadReviews();
+    }
+  }, [productId, currentPage, loadReviews]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);

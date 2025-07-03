@@ -3,6 +3,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { fetchAdminProductList } from './ProductList.api';
 import type { AdminProductListItem } from './ProductList.types';
 
@@ -150,10 +151,12 @@ export default function ProductList({ onSelect, onCreate }: ProductListProps) {
                           const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
                           const src = product.mainImage.startsWith('http') ? product.mainImage : `${API_URL}${product.mainImage}`;
                           return (
-                            <img
+                            <Image
                               src={src}
                               alt={product.name}
-                              style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4 }}
+                              width={48}
+                              height={48}
+                              style={{ objectFit: 'cover', borderRadius: 4 }}
                             />
                           );
                         })()

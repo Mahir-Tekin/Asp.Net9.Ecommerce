@@ -1,11 +1,10 @@
 'use client';
 
-import { useActionState } from 'react';
+
 import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { loginFormAction, type AuthState } from '@/app/actions/auth';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { ValidationError } from '@/types/auth';
 

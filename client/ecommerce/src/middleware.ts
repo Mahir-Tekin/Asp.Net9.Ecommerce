@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server';
 // Define path configurations
 const PUBLIC_PATHS = ['/', '/login', '/register','/cart'];
 const PUBLIC_DYNAMIC_PATHS = [/^\/product\/[^/]+$/]; // Add dynamic product details route
-const ADMIN_PATHS = ['/admin', '/admin/dashboard'];
+const ADMIN_PATHS = ['/admin'];
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api';
 
 export async function middleware(request: NextRequest) {
@@ -39,7 +39,7 @@ export async function middleware(request: NextRequest) {
                         return NextResponse.redirect(new URL('/admin/products', request.url));
                     }
                 }
-            } catch (error) {
+            } catch  {
                 // Ignore error, just proceed
             }
             // Only redirect to home if trying to access login/register while logged in (non-admin)

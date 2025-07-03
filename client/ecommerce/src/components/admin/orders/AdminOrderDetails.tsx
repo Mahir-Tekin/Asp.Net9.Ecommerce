@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Image from 'next/image';
 
 interface AdminOrderDetailsProps {
   order: any | null;
@@ -104,7 +105,7 @@ export default function AdminOrderDetails({ order }: AdminOrderDetailsProps) {
                     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
                     const src = item.imageUrl.startsWith('http') ? item.imageUrl : `${API_URL}${item.imageUrl}`;
                     return (
-                      <img src={src} alt={item.productName} width={48} height={48} className="rounded border bg-neutral-100 object-cover" />
+                      <Image src={src} alt={item.productName} width={48} height={48} className="rounded border bg-neutral-100 object-cover" />
                     );
                   })()}
                   <div className="flex-1">

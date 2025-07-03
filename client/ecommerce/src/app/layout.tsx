@@ -5,6 +5,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import { ToastProvider } from "@/context/ToastContext";
 import ToastContainer from "@/components/ui/ToastContainer";
+import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,7 +26,9 @@ export default function RootLayout({
           <AuthProvider>
               <CartProvider>
                 <ToastProvider>
-                  {children}
+                  <Suspense fallback={<div>Loading...</div>}>
+                    {children}
+                  </Suspense>
                   <ToastContainer />
                 </ToastProvider>
               </CartProvider>

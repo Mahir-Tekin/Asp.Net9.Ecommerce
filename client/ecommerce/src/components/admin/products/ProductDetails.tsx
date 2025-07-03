@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { ChevronDownIcon, ChevronUpIcon, PencilIcon, TrashIcon, EyeIcon, EyeSlashIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 interface ProductImage {
@@ -74,23 +75,17 @@ export default function ProductDetails({ id, onEdit, onDelete, onBack }: Product
     inventory: false
   });
 
-  useEffect(() => {
-    fetchProduct();
-  }, [id]);
-
-  const fetchProduct = async () => {
+  const fetchProduct = useCallback(async () => {
     try {
       setLoading(true);
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api';
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : undefined;
-      
       const response = await fetch(`${API_URL}/Products/${id}`, {
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         }
       });
-      
       if (!response.ok) {
         throw new Error('Failed to fetch product');
       }
@@ -101,7 +96,11 @@ export default function ProductDetails({ id, onEdit, onDelete, onBack }: Product
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchProduct();
+  }, [id, fetchProduct]);
 
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({
@@ -274,9 +273,11 @@ export default function ProductDetails({ id, onEdit, onDelete, onBack }: Product
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {product.images.map((image, index) => (
                 <div key={index} className="relative group">
-                  <img
+                  <Image
                     src={image.url}
                     alt={image.altText}
+                    width={200}
+                    height={96}
                     className="w-full h-24 object-cover rounded-lg border border-gray-200"
                   />
                   {image.isMain && (

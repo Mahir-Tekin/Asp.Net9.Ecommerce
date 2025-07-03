@@ -7,6 +7,9 @@ on:
   push:
     branches:
       - master
+    paths:
+      - 'src/**'
+      - '.github/workflows/azure-webapp-deploy.yml'
   workflow_dispatch:
 
 jobs:

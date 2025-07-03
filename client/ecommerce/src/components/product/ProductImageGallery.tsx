@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Image from 'next/image';
 
 interface ProductImageGalleryProps {
   images: { url: string; altText: string; isMain: boolean }[];
@@ -16,7 +17,7 @@ export default function ProductImageGallery({ images }: ProductImageGalleryProps
     <div className="flex flex-col items-center">
       <div className="w-80 h-80 bg-gray-100 flex items-center justify-center mb-4 border rounded overflow-hidden">
         {selected ? (
-          <img src={getSrc(selected.url)} alt={selected.altText} className="object-contain w-full h-full" />
+          <Image src={getSrc(selected.url)} alt={selected.altText} width={320} height={320} className="object-contain w-full h-full" />
         ) : (
           <span className="text-gray-400">No Image</span>
         )}
@@ -30,7 +31,7 @@ export default function ProductImageGallery({ images }: ProductImageGalleryProps
               onClick={() => setSelected(img)}
               type="button"
             >
-              <img src={getSrc(img.url)} alt={img.altText} className="object-contain w-full h-full" />
+              <Image src={getSrc(img.url)} alt={img.altText} width={64} height={64} className="object-contain w-full h-full" />
             </button>
           ))}
         </div>
