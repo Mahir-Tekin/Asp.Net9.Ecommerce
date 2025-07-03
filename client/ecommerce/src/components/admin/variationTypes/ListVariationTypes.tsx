@@ -21,7 +21,7 @@ export default function ListVariationTypes({ onSelect, onCreate }: ListVariation
     const fetchVariationTypes = async () => {
       try {
         const token = localStorage.getItem('accessToken');
-        const response = await axios.get(`${API_URL}/variation-types`, {
+        const response = await axios.get(`${API_URL}/api/variation-types`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
