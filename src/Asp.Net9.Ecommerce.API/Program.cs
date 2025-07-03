@@ -77,7 +77,7 @@ builder.Services.AddCors(options =>
         builder =>
         {
             builder
-                .WithOrigins("https://asp-net9-ecommerce-i0q2h5e4h-mahir-tekins-projects.vercel.app")
+                .WithOrigins("https://asp-net9-ecommerce.vercel.app")
                 .AllowAnyMethod()
                 .AllowAnyHeader()
                 .AllowCredentials();
