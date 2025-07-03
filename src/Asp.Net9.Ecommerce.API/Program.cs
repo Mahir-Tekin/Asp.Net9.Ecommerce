@@ -77,7 +77,10 @@ builder.Services.AddCors(options =>
         builder =>
         {
             builder
-                .WithOrigins("https://asp-net9-ecommerce.vercel.app")
+                .WithOrigins(
+                    "https://asp-net9-ecommerce.vercel.app",
+                    "http://localhost:3000"
+                )
                 .AllowAnyMethod()
                 .AllowAnyHeader()
                 .AllowCredentials();

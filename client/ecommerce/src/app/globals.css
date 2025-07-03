@@ -21,6 +21,25 @@ body {
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Touch-friendly interactions */
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+
+  /* Smooth transforms for mobile */
+  .will-change-transform {
+    will-change: transform;
+  }
 }
 
 /* Smooth scrolling */

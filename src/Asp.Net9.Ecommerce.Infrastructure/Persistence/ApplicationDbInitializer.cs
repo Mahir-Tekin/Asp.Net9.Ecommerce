@@ -32,12 +32,20 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence
 
         private async Task SeedAdminUserAsync()
         {
-            const string adminEmail = "admin@localhost";
-            
+            // Use environment variables for admin credentials; do not seed if not set
+            var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL");
+            var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
+
+            if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
+            {
+                _logger.LogInformation("ADMIN_EMAIL or ADMIN_PASSWORD not set. Skipping admin user seeding.");
+                return;
+            }
+
             if (_userManager.Users.All(u => u.UserName != adminEmail))
             {
                 _logger.LogInformation("Seeding admin user...");
-                
+
                 var userResult = AppUser.Create(adminEmail);
                 if (userResult.IsFailure)
                 {
@@ -53,8 +61,8 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence
                     return;
                 }
 
-                var result = await _userManager.CreateAsync(administrator, "Administrator1!");
-                
+                var result = await _userManager.CreateAsync(administrator, adminPassword);
+
                 if (result.Succeeded)
                 {
                     await _userManager.AddToRolesAsync(administrator, new[] { AppRoles.Admin });
@@ -62,7 +70,7 @@ namespace Asp.Net9.Ecommerce.Infrastructure.Persistence
                 }
                 else
                 {
-                    _logger.LogError("Failed to create admin user. Errors: {Errors}", 
+                    _logger.LogError("Failed to create admin user. Errors: {Errors}",
                         string.Join(", ", result.Errors.Select(e => e.Description)));
                 }
             }

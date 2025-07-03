@@ -12,7 +12,7 @@ const CategoryList: React.FC<{
   onSelect: (id: string) => void;
   level?: number;
 }> = ({ categories, expanded, setExpanded, selectedId, onSelect, level = 0 }) => (
-  <ul className={`space-y-1 ${level > 0 ? 'ml-4 mt-2' : ''}`}>
+  <ul className={`space-y-1 ${level > 0 ? 'ml-3 mt-2' : ''}`}>
     {categories.map((cat) => {
       const isLeaf = !cat.subCategories || cat.subCategories.length === 0;
       const isExpanded = expanded.has(cat.id);
@@ -21,9 +21,9 @@ const CategoryList: React.FC<{
         <li key={cat.id}>
           <div className="flex items-center">
             <button
-              className={`flex-1 text-left px-3 py-2 rounded-md transition-all duration-200 text-sm ${
+              className={`flex-1 text-left px-3 py-2.5 rounded-md transition-all duration-200 text-sm touch-manipulation ${
                 isSelected 
-                  ? 'bg-blue-100 text-blue-700 font-semibold border border-blue-200' 
+                  ? 'bg-blue-100 text-blue-700 font-semibold border border-blue-200 shadow-sm' 
                   : isExpanded
                   ? 'bg-gray-100 text-gray-700 hover:bg-gray-150'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
@@ -45,18 +45,18 @@ const CategoryList: React.FC<{
               }}
             >
               <div className="flex items-center justify-between">
-                <span>{cat.name}</span>
+                <span className="leading-relaxed">{cat.name}</span>
                 {!isLeaf && (
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 ml-2">
                     {cat.subCategories && (
-                      <span className="text-xs text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full">
+                      <span className="text-xs text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full min-w-[20px] text-center">
                         {cat.subCategories.length}
                       </span>
                     )}
                     {isExpanded ? (
-                      <HiChevronDown className="h-4 w-4 text-gray-400" />
+                      <HiChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
                     ) : (
-                      <HiChevronRight className="h-4 w-4 text-gray-400" />
+                      <HiChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
                     )}
                   </div>
                 )}
