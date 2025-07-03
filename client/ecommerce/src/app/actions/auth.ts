@@ -10,7 +10,7 @@ import {
     User
 } from '@/types/auth';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
 
 async function handleApiResponse(response: Response): Promise<AuthActionResponse> {
     if (!response.ok) {
@@ -60,7 +60,7 @@ async function handleApiResponse(response: Response): Promise<AuthActionResponse
 
 export async function login(credentials: LoginRequest): Promise<AuthActionResponse> {
     try {
-        const response = await fetch(`${API_URL}/Auth/login`, {
+        const response = await fetch(`${API_URL}/api/Auth/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

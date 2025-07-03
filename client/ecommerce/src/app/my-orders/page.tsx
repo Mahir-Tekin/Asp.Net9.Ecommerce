@@ -58,7 +58,7 @@ export default function MyOrdersPage() {
       setError(null);
       try {
         const token = localStorage.getItem('accessToken');
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api'}/Order/my`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001'}/api/Order/my`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (!res.ok) throw new Error('Failed to fetch orders');

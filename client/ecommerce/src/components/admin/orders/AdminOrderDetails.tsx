@@ -33,7 +33,7 @@ export default function AdminOrderDetails({ order }: AdminOrderDetailsProps) {
     try {
       const token = localStorage.getItem('accessToken');
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api'}/Order/admin/${order.id}/status`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001'}/api/Order/admin/${order.id}/status`,
         {
           method: 'PUT',
           headers: {

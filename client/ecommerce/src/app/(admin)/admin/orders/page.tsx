@@ -19,7 +19,7 @@ export default function AdminOrdersPage() {
       try {
         const token = localStorage.getItem('accessToken');
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api'}/Order/admin?page=1&pageSize=20`,
+          `${process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001'}/api/Order/admin?page=1&pageSize=20`,
           {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
           }
@@ -48,7 +48,7 @@ export default function AdminOrdersPage() {
       try {
         const token = localStorage.getItem('accessToken');
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api'}/Order/admin/${selectedOrderId}`,
+          `${process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001'}/api/Order/admin/${selectedOrderId}`,
           {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
           }

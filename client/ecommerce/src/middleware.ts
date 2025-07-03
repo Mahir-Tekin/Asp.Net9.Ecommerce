@@ -5,7 +5,7 @@ import type { NextRequest } from 'next/server';
 const PUBLIC_PATHS = ['/', '/login', '/register','/cart'];
 const PUBLIC_DYNAMIC_PATHS = [/^\/product\/[^/]+$/]; // Add dynamic product details route
 const ADMIN_PATHS = ['/admin'];
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
 
 export async function middleware(request: NextRequest) {
     const path = request.nextUrl.pathname;
@@ -26,7 +26,7 @@ export async function middleware(request: NextRequest) {
         if (token) {
             // Check user role
             try {
-                const response = await fetch(`${API_URL}/Auth/me`, {
+                const response = await fetch(`${API_URL}/api/Auth/me`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'

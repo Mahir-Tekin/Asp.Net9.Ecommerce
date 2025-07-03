@@ -52,7 +52,7 @@ export default function MyFavoritesPage() {
         
         for (const id of wishlist) {
           try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api'}/Products/${id}`);
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001'}/api/Products/${id}`);
             if (res.ok) {
               const product = await res.json();
               

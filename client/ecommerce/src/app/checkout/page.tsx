@@ -49,7 +49,7 @@ function CheckoutPageContent() {
           imageUrl: item.image,
         })),
       };
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api'}/Order`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001'}api/Order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
