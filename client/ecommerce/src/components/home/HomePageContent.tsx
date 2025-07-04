@@ -129,12 +129,18 @@ export default function HomePageContent() {
                   <div className="relative aspect-square bg-gray-100">
                     <Link href={`/product/${product.slug}`}>
                       {product.mainImage ? (
-                        <Image
-                          src={product.mainImage}
-                          alt={product.name}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
+                        (() => {
+                          const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001';
+                          const src = product.mainImage.startsWith('http') ? product.mainImage : `${API_URL}${product.mainImage}`;
+                          return (
+                            <Image
+                              src={src}
+                              alt={product.name}
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          );
+                        })()
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
                           <HiShoppingBag className="w-12 h-12 text-gray-400" />
