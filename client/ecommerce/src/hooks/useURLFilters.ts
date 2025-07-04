@@ -50,6 +50,18 @@ export function useURLFilters() {
     );
   }, [filters.searchTerm, filters.categoryId]);
 
+  // Check if we have active filters (for displaying filter counts, excluding 'all' category)
+  const hasActiveFilters = useMemo(() => {
+    return (
+      (typeof filters.searchTerm === 'string' && filters.searchTerm.trim() !== '') ||
+      (typeof filters.categoryId === 'string' && filters.categoryId !== null && filters.categoryId.trim() !== '' && filters.categoryId !== 'all') ||
+      (typeof filters.minPrice === 'number' && filters.minPrice > 0) ||
+      (typeof filters.maxPrice === 'number' && filters.maxPrice > 0) ||
+      (filters.variationFilters && Object.keys(filters.variationFilters).length > 0) ||
+      (typeof filters.sortBy === 'string' && filters.sortBy.trim() !== '')
+    );
+  }, [filters]);
+
   // Function to update URL with new filters
   const updateFilters = useCallback((newFilters: Partial<ProductFilters>) => {
     const params = new URLSearchParams();
@@ -138,6 +150,7 @@ export function useURLFilters() {
   return {
     filters,
     isFiltered,
+    hasActiveFilters,
     updateFilters,
     removeFilter,
     clearAllFilters

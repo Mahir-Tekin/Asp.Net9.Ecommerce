@@ -11,7 +11,8 @@ const CategoryVariationFilters: React.FC = () => {
 
   // Fetch category details when categoryId changes
   useEffect(() => {
-    if (filters.categoryId) {
+    // Only fetch category details if categoryId exists and is not "all"
+    if (filters.categoryId && filters.categoryId !== 'all') {
       setLoading(true);
       fetchCategoryDetails(filters.categoryId)
         .then(setCategoryDetails)

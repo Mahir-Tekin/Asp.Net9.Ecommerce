@@ -70,14 +70,14 @@ export default function ShopBreadcrumb() {
       }
     ];
 
-    // If we're in shop but no filters applied
-    if (!filters.categoryId && !filters.searchTerm) {
+    // If we're in shop but no filters applied, or if category is "all"
+    if ((!filters.categoryId || filters.categoryId === 'all') && !filters.searchTerm) {
       items.push({ label: 'All Products', isActive: true });
       return items;
     }
 
-    // If there's a category selected, build the category path
-    if (filters.categoryId && categories.length > 0) {
+    // If there's a category selected (and not "all"), build the category path
+    if (filters.categoryId && filters.categoryId !== 'all' && categories.length > 0) {
       const categoryPath = buildCategoryPath(filters.categoryId, categories);
       
       categoryPath.forEach((category, index) => {

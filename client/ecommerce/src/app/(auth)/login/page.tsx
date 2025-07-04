@@ -1,10 +1,9 @@
 'use client';
 
-
 import { useFormStatus } from 'react-dom';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { ValidationError } from '@/types/auth';
 
@@ -23,11 +22,14 @@ function SubmitButton() {
     );
 }
 
-export default function LoginPage() {
+function LoginPageContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { login } = useAuth();
     const [error, setError] = useState<string | null>(null);
     const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+    
+    const redirectTo = searchParams.get('redirect') || '/';
 
     const handleSubmit = async (formData: FormData) => {
         const email = formData.get('email') as string;
@@ -38,7 +40,8 @@ export default function LoginPage() {
             const result = await login(email, password, rememberMe);
             
             if (result.success) {
-                router.push('/');
+                // Redirect to the intended page or home
+                router.push(redirectTo);
                 return;
             }
 
@@ -156,4 +159,14 @@ export default function LoginPage() {
             </div>
         </div>
     );
-} 
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        </div>}>
+            <LoginPageContent />
+        </Suspense>
+    );
+}

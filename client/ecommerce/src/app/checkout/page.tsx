@@ -1,18 +1,44 @@
 'use client';
 import Link from 'next/link';
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import AddressPanel from '@/components/checkout/AddressPanel';
 import OrderSummary from '@/components/checkout/OrderSummary';
 import type { Address } from '@/types/address';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 
 function CheckoutPageContent() {
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const { cartItems, clearCart } = useCart();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login?redirect=/checkout');
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  // Show loading spinner while checking authentication
+  if (isLoading) {
+    return (
+      <div className="max-w-2xl mx-auto p-8">
+        <div className="flex items-center justify-center py-16">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-2 text-gray-600">Checking authentication...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render anything if not authenticated (will redirect)
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const handlePlaceOrder = async () => {
     if (!selectedAddress) {
@@ -69,22 +95,35 @@ function CheckoutPageContent() {
 
   return (
     <div className="max-w-2xl mx-auto p-8">
-      <h1 className="text-2xl font-bold mb-6">Checkout</h1>
+      {/* User Welcome */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Checkout</h1>
+        <p className="text-gray-600 mt-1">
+          Hello {user?.fullName || 'there'}, complete your order below.
+        </p>
+      </div>
+      
       <AddressPanel
         onSelect={setSelectedAddress}
         selectedAddressId={selectedAddress?.id}
       />
       <div className="my-8" />
       <OrderSummary />
-      {error && <div className="text-red-500 my-4">{error}</div>}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded my-4">
+          {error}
+        </div>
+      )}
       <button
-        className="mt-4 w-full bg-green-600 text-white py-3 rounded hover:bg-green-700 text-lg font-semibold disabled:opacity-50"
+        className="mt-4 w-full bg-green-600 text-white py-3 rounded hover:bg-green-700 text-lg font-semibold disabled:opacity-50 transition-colors"
         onClick={handlePlaceOrder}
         disabled={loading || !selectedAddress || cartItems.length === 0}
       >
         {loading ? 'Placing Order...' : 'Place Order'}
       </button>
-      <Link href="/cart" className="text-green-600 hover:underline block mt-4">Back to Cart</Link>
+      <Link href="/cart" className="text-green-600 hover:underline block mt-4 text-center">
+        ← Back to Cart
+      </Link>
     </div>
   );
 }

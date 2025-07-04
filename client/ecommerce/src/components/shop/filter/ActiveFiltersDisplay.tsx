@@ -6,12 +6,9 @@ import { HiXMark } from 'react-icons/hi2';
 import { fetchCategories, Category } from '@/components/shop/Categories/Categories.api';
 
 export default function ActiveFiltersDisplay() {
-  const { filters, removeFilter, clearAllFilters } = useURLFilters();
+  const { filters, removeFilter, clearAllFilters, hasActiveFilters } = useURLFilters();
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
-
-  // Simple debug log to confirm component is rendering
-  console.log('🔍 ActiveFiltersDisplay is rendering!', new Date().toISOString());
 
   // Fetch categories for display names
   useEffect(() => {
@@ -68,43 +65,9 @@ export default function ActiveFiltersDisplay() {
     return sortOptions[sortBy] || sortBy;
   };
 
-  const hasActiveFilters = 
-    filters.searchTerm ||
-    filters.categoryId ||
-    filters.minPrice ||
-    filters.maxPrice ||
-    filters.sortBy ||
-    (filters.variationFilters && Object.keys(filters.variationFilters).length > 0);
-
-  // Debug logging
-  console.log('ActiveFiltersDisplay Debug:', {
-    filters,
-    hasActiveFilters,
-    searchTerm: filters.searchTerm,
-    categoryId: filters.categoryId,
-    minPrice: filters.minPrice,
-    maxPrice: filters.maxPrice,
-    sortBy: filters.sortBy,
-    variationFilters: filters.variationFilters,
-    variationFiltersKeys: filters.variationFilters ? Object.keys(filters.variationFilters) : []
-  });
-
-  // Show something even when no active filters (for debugging)
+  // Don't render anything if there are no active filters
   if (!hasActiveFilters) {
-    return (
-      <div className="bg-yellow-50 rounded-lg border border-yellow-200 p-3 mb-6">
-        <p className="text-sm text-yellow-800">
-          🐛 ActiveFiltersDisplay: No active filters detected
-        </p>
-        <p className="text-xs text-yellow-600 mt-1">
-          Search: "{filters.searchTerm || 'empty'}" | 
-          Category: {filters.categoryId || 'none'} | 
-          MinPrice: {filters.minPrice || 'none'} | 
-          MaxPrice: {filters.maxPrice || 'none'} | 
-          Sort: {filters.sortBy || 'none'}
-        </p>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -134,7 +97,7 @@ export default function ActiveFiltersDisplay() {
         )}
 
         {/* Category Filter */}
-        {filters.categoryId && (
+        {filters.categoryId && filters.categoryId !== 'all' && (
           <div className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm transition-all hover:bg-green-200">
             <span>Category: {getCategoryName(filters.categoryId)}</span>
             <button
@@ -208,13 +171,13 @@ export default function ActiveFiltersDisplay() {
         <p className="text-xs text-gray-500">
           {Object.values({
             search: filters.searchTerm ? 1 : 0,
-            category: filters.categoryId ? 1 : 0,
+            category: (filters.categoryId && filters.categoryId !== 'all') ? 1 : 0,
             price: (filters.minPrice || filters.maxPrice) ? 1 : 0,
             sort: filters.sortBy ? 1 : 0,
             variations: filters.variationFilters ? Object.keys(filters.variationFilters).length : 0
           }).reduce((sum, count) => sum + count, 0)} active filter{Object.values({
             search: filters.searchTerm ? 1 : 0,
-            category: filters.categoryId ? 1 : 0,
+            category: (filters.categoryId && filters.categoryId !== 'all') ? 1 : 0,
             price: (filters.minPrice || filters.maxPrice) ? 1 : 0,
             sort: filters.sortBy ? 1 : 0,
             variations: filters.variationFilters ? Object.keys(filters.variationFilters).length : 0

@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { HiShoppingBag, HiHeart, HiStar } from 'react-icons/hi2';
+import { HiShoppingBag, HiHeart, HiStar, HiCog6Tooth, HiBolt, HiShieldCheck, HiCube, HiCircleStack, HiSparkles } from 'react-icons/hi2';
 import { createFilterURL } from '@/utils/urlFilters';
 
 interface Product {
@@ -49,7 +49,7 @@ export default function HomePageContent() {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 py-16">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Hero Section - Portfolio Project Showcase */}
         <section className="mb-20">
           <div className="bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 rounded-2xl overflow-hidden shadow-2xl">
@@ -63,12 +63,12 @@ export default function HomePageContent() {
                   Full-Stack <span className="text-blue-200">E-Commerce</span> Platform
                 </h1>
                 <p className="text-xl md:text-2xl mb-8 opacity-90 max-w-3xl mx-auto">
-                  A comprehensive e-commerce solution built with modern technologies, showcasing advanced development skills and industry best practices
+                  An enterprise-grade e-commerce platform showcasing advanced backend architecture with Clean Architecture, CQRS, Domain-Driven Design, and modern development practices
                 </p>
                 
                 {/* Tech Stack Pills */}
                 <div className="flex flex-wrap justify-center gap-3 mb-8">
-                  {['Next.js 14', 'ASP.NET Core', 'TypeScript', 'Tailwind CSS', 'JWT Auth', 'PostgreSQL'].map((tech) => (
+                  {['ASP.NET 9', 'Clean Architecture', 'CQRS + MediatR', 'Domain-Driven Design', 'Entity Framework', 'JWT + Refresh Tokens', 'PostgreSQL', 'GitHub Actions', 'Vercel Deployment', 'Next.js 14', 'TypeScript'].map((tech) => (
                     <span key={tech} className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium">
                       {tech}
                     </span>
@@ -78,7 +78,7 @@ export default function HomePageContent() {
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <a 
-                    href="https://github.com/yourusername/project-repo" 
+                    href="https://github.com/Mahir-Tekin/Asp.Net9.Ecommerce" 
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 bg-white text-blue-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-blue-50 hover:scale-105 transition-all duration-300 shadow-lg"
@@ -103,63 +103,7 @@ export default function HomePageContent() {
           </div>
         </section>
 
-        {/* Key Features Section */}
-        <section className="mb-20">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4 text-gray-800">Technical Highlights</h2>
-            <p className="text-gray-600 text-lg">Advanced features demonstrating full-stack expertise</p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                icon: "🔐",
-                title: "JWT Authentication",
-                description: "Secure user authentication with role-based access control and protected routes",
-                color: "bg-blue-100"
-              },
-              {
-                icon: "🛒",
-                title: "Advanced Cart System",
-                description: "Persistent shopping cart with real-time updates and variant management",
-                color: "bg-green-100"
-              },
-              {
-                icon: "💳",
-                title: "Order Management",
-                description: "Complete order lifecycle with status tracking and detailed history",
-                color: "bg-purple-100"
-              },
-              {
-                icon: "❤️",
-                title: "Wishlist System",
-                description: "Client-side favorites with localStorage persistence and cross-component sync",
-                color: "bg-red-100"
-              },
-              {
-                icon: "🔍",
-                title: "Smart Filtering",
-                description: "Dynamic product filtering with category hierarchy and search functionality",
-                color: "bg-yellow-100"
-              },
-              {
-                icon: "📱",
-                title: "Responsive Design",
-                description: "Mobile-first approach with modern UI components and smooth animations",
-                color: "bg-indigo-100"
-              }
-            ].map((feature, index) => (
-              <div key={index} className="p-6 bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                <div className={`w-16 h-16 ${feature.color} rounded-full flex items-center justify-center mx-auto mb-4`}>
-                  <span className="text-2xl">{feature.icon}</span>
-                </div>
-                <h3 className="text-xl font-bold mb-3 text-gray-800">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Featured Products Showcase */}
+                {/* Featured Products Showcase */}
         <section className="mb-20">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold mb-4 text-gray-800">Live Product Demo</h2>
@@ -290,53 +234,265 @@ export default function HomePageContent() {
           </div>
         </section>
 
+        {/* Key Features Section */}
+        <section className="mb-20">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold mb-4 text-gray-800">Enterprise-Grade Backend Architecture</h2>
+            <p className="text-gray-600 text-lg">Advanced software engineering patterns and modern development practices</p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              {
+                icon: <HiCube className="w-8 h-8 text-blue-600" />,
+                title: "Clean Architecture",
+                description: "Domain-driven design with clear separation of concerns. Domain, Application, Infrastructure layers following SOLID principles",
+                color: "bg-blue-100"
+              },
+              {
+                icon: <HiBolt className="w-8 h-8 text-green-600" />,
+                title: "CQRS + MediatR",
+                description: "Command Query Responsibility Segregation with MediatR for scalable request/response handling and clean controller design",
+                color: "bg-green-100"
+              },
+              {
+                icon: <HiShieldCheck className="w-8 h-8 text-purple-600" />,
+                title: "Advanced Authentication",
+                description: "JWT access tokens with secure refresh token rotation, role-based authorization, and ASP.NET Identity integration",
+                color: "bg-purple-100"
+              },
+              {
+                icon: <HiShieldCheck className="w-8 h-8 text-red-600" />,
+                title: "Result Pattern",
+                description: "Type-safe error handling without exceptions. Explicit success/failure states with detailed error responses",
+                color: "bg-red-100"
+              },
+              {
+                icon: <HiCircleStack className="w-8 h-8 text-yellow-600" />,
+                title: "Repository + UoW",
+                description: "Repository pattern with Unit of Work for clean data access abstraction and transaction management",
+                color: "bg-yellow-100"
+              },
+              {
+                icon: <HiSparkles className="w-8 h-8 text-indigo-600" />,
+                title: "Rich Domain Models",
+                description: "Domain entities with encapsulated business rules, value objects, and aggregate boundaries for data consistency",
+                color: "bg-indigo-100"
+              }
+            ].map((feature, index) => (
+              <div key={index} className="p-6 bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div className={`w-16 h-16 ${feature.color} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                  {feature.icon}
+                </div>
+                <h3 className="text-xl font-bold mb-3 text-gray-800">{feature.title}</h3>
+                <p className="text-gray-600">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Advanced Backend Features */}
+        <section className="mb-20">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold mb-4 text-gray-800">Backend Implementation Highlights</h2>
+            <p className="text-gray-600 text-lg">Sophisticated patterns and enterprise-level code organization</p>
+          </div>
+          
+          <div className="grid lg:grid-cols-2 gap-8 mb-12">
+            {/* Authentication System */}
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-8 border border-purple-200">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center mr-4">
+                  <HiShieldCheck className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800">Advanced Authentication</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-purple-500 rounded-full mt-2"></span>
+                  <div>
+                    <strong className="text-gray-800">JWT + Refresh Tokens:</strong>
+                    <p className="text-gray-600">Secure token rotation with configurable expiry times</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-purple-500 rounded-full mt-2"></span>
+                  <div>
+                    <strong className="text-gray-800">Role-Based Access:</strong>
+                    <p className="text-gray-600">Granular permissions with Admin/Customer roles</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-purple-500 rounded-full mt-2"></span>
+                  <div>
+                    <strong className="text-gray-800">ASP.NET Identity:</strong>
+                    <p className="text-gray-600">Built-in security features with custom user model</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* CQRS Pattern */}
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-8 border border-blue-200">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center mr-4">
+                  <HiBolt className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800">CQRS + MediatR</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full mt-2"></span>
+                  <div>
+                    <strong className="text-gray-800">Command/Query Separation:</strong>
+                    <p className="text-gray-600">Clear distinction between read and write operations</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full mt-2"></span>
+                  <div>
+                    <strong className="text-gray-800">Handler Pattern:</strong>
+                    <p className="text-gray-600">Dedicated handlers for each business operation</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full mt-2"></span>
+                  <div>
+                    <strong className="text-gray-800">Clean Controllers:</strong>
+                    <p className="text-gray-600">Thin controllers that delegate to MediatR</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-8">
+            {/* Domain Models */}
+            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-8 border border-green-200">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center mr-4">
+                  <HiCube className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800">Rich Domain Models</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-green-500 rounded-full mt-2"></span>
+                  <div>
+                    <strong className="text-gray-800">Encapsulated Business Logic:</strong>
+                    <p className="text-gray-600">Domain entities contain their own validation rules</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-green-500 rounded-full mt-2"></span>
+                  <div>
+                    <strong className="text-gray-800">Aggregate Boundaries:</strong>
+                    <p className="text-gray-600">Proper transactional consistency guarantees</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-green-500 rounded-full mt-2"></span>
+                  <div>
+                    <strong className="text-gray-800">Value Objects:</strong>
+                    <p className="text-gray-600">Immutable objects for domain concepts</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Error Handling */}
+            <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-8 border border-red-200">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-red-500 rounded-lg flex items-center justify-center mr-4">
+                  <HiShieldCheck className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800">Result Pattern</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-red-500 rounded-full mt-2"></span>
+                  <div>
+                    <strong className="text-gray-800">No Exceptions for Business Logic:</strong>
+                    <p className="text-gray-600">Explicit success/failure states</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-red-500 rounded-full mt-2"></span>
+                  <div>
+                    <strong className="text-gray-800">Type-Safe Error Handling:</strong>
+                    <p className="text-gray-600">Compile-time error checking</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-red-500 rounded-full mt-2"></span>
+                  <div>
+                    <strong className="text-gray-800">Structured Error Responses:</strong>
+                    <p className="text-gray-600">Consistent API error format</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Technology Stack Section */}
         <section className="mb-20">
           <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl p-8 md:p-12">
             <div className="text-center mb-10">
-              <h2 className="text-3xl font-bold mb-4 text-gray-800">Technology Stack</h2>
-              <p className="text-gray-600 text-lg">Modern tools and frameworks for scalable development</p>
+              <h2 className="text-3xl font-bold mb-4 text-gray-800">Technical Implementation Details</h2>
+              <p className="text-gray-600 text-lg">Enterprise patterns and industry best practices</p>
             </div>
             
             <div className="grid md:grid-cols-2 gap-8">
-              {/* Frontend */}
+              {/* Backend */}
               <div className="bg-white rounded-xl p-6 shadow-md">
                 <h3 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
-                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                  Frontend
+                  <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+                  Backend Architecture
                 </h3>
                 <div className="space-y-2">
                   {[
-                    'Next.js 14 (App Router)',
-                    'TypeScript for type safety',
-                    'Tailwind CSS for styling',
-                    'React Context for state management',
-                    'Heroicons for consistent iconography'
+                    'ASP.NET Core 9 Web API',
+                    'Clean Architecture (Domain/Application/Infrastructure)',
+                    'CQRS pattern with MediatR',
+                    'Domain-Driven Design principles',
+                    'Entity Framework Core with PostgreSQL',
+                    'Repository pattern with Unit of Work',
+                    'Result pattern for error handling',
+                    'JWT authentication with refresh tokens',
+                    'Role-based authorization system',
+                    'AutoMapper for object mapping',
+                    'FluentValidation for input validation'
                   ].map((tech) => (
                     <div key={tech} className="flex items-center gap-2 text-gray-600">
-                      <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+                      <span className="w-1.5 h-1.5 bg-purple-400 rounded-full"></span>
                       {tech}
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Backend */}
+              {/* Frontend */}
               <div className="bg-white rounded-xl p-6 shadow-md">
                 <h3 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
-                  <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
-                  Backend
+                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                  Frontend & User Experience
                 </h3>
                 <div className="space-y-2">
                   {[
-                    'ASP.NET Core Web API',
-                    'Entity Framework Core',
-                    'PostgreSQL database',
-                    'JWT token authentication',
-                    'RESTful API architecture'
+                    'Next.js 14 with App Router',
+                    'TypeScript for type safety',
+                    'Tailwind CSS for responsive design',
+                    'React Context for state management',
+                    'Custom hooks for data fetching',
+                    'Protected routes with JWT validation',
+                    'Optimistic UI updates',
+                    'Client-side caching strategies',
+                    'Responsive mobile-first design',
+                    'SEO optimization',
+                    'Performance optimization'
                   ].map((tech) => (
                     <div key={tech} className="flex items-center gap-2 text-gray-600">
-                      <span className="w-1.5 h-1.5 bg-purple-400 rounded-full"></span>
+                      <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
                       {tech}
                     </div>
                   ))}
@@ -350,21 +506,38 @@ export default function HomePageContent() {
         <section className="mb-20">
           <div className="bg-white rounded-2xl p-8 md:p-12 shadow-lg border border-gray-100">
             <div className="text-center mb-10">
-              <h2 className="text-3xl font-bold mb-4 text-gray-800">Project Complexity</h2>
-              <p className="text-gray-600 text-lg">Demonstrating comprehensive full-stack development skills</p>
+              <h2 className="text-3xl font-bold mb-4 text-gray-800">Project Complexity & Scale</h2>
+              <p className="text-gray-600 text-lg">Demonstrating enterprise-level software architecture</p>
             </div>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {[
-                { number: "15+", label: "Components", icon: "🧩" },
-                { number: "8+", label: "API Endpoints", icon: "🔗" },
-                { number: "5+", label: "User Roles", icon: "👥" },
-                { number: "100%", label: "TypeScript", icon: "⚡" }
+                { number: "50+", label: "Command/Query Handlers", icon: <HiBolt className="w-8 h-8 text-blue-600 mx-auto" /> },
+                { number: "20+", label: "Domain Entities", icon: <HiCube className="w-8 h-8 text-blue-600 mx-auto" /> },
+                { number: "15+", label: "API Controllers", icon: <HiCog6Tooth className="w-8 h-8 text-blue-600 mx-auto" /> },
+                { number: "4", label: "Architecture Layers", icon: <HiCircleStack className="w-8 h-8 text-blue-600 mx-auto" /> }
               ].map((stat, index) => (
                 <div key={index} className="text-center">
-                  <div className="text-3xl mb-2">{stat.icon}</div>
+                  <div className="mb-2">{stat.icon}</div>
                   <div className="text-3xl font-bold text-blue-600 mb-1">{stat.number}</div>
                   <div className="text-gray-600 font-medium">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Architecture Layers Breakdown */}
+            <div className="mt-12 grid md:grid-cols-4 gap-4">
+              {[
+                { layer: "Domain", description: "Business logic & entities", color: "bg-blue-100 text-blue-800" },
+                { layer: "Application", description: "Use cases & handlers", color: "bg-green-100 text-green-800" },
+                { layer: "Infrastructure", description: "Data access & external services", color: "bg-purple-100 text-purple-800" },
+                { layer: "API", description: "Controllers & middleware", color: "bg-orange-100 text-orange-800" }
+              ].map((item, index) => (
+                <div key={index} className="text-center">
+                  <div className={`${item.color} px-3 py-2 rounded-lg font-semibold mb-2`}>
+                    {item.layer}
+                  </div>
+                  <p className="text-sm text-gray-600">{item.description}</p>
                 </div>
               ))}
             </div>

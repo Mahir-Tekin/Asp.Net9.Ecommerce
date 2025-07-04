@@ -100,7 +100,7 @@ const Categories: React.FC = () => {
 
   // Auto-expand all parent categories if a subcategory is selected
   useEffect(() => {
-    if (filters.categoryId && categories.length > 0) {
+    if (filters.categoryId && filters.categoryId !== 'all' && categories.length > 0) {
       const findParentPath = (categoryId: string, cats: Category[], path: string[] = []): string[] | null => {
         for (const cat of cats) {
           if (cat.id === categoryId) {

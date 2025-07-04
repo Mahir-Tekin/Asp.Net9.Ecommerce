@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { ValidationError } from '@/types/auth';
@@ -22,11 +22,14 @@ function SubmitButton() {
     );
 }
 
-export default function RegisterPage() {
+function RegisterPageContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { register } = useAuth();
     const [error, setError] = useState<string | null>(null);
     const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+    
+    const redirectTo = searchParams.get('redirect');
 
     const handleSubmit = async (formData: FormData) => {
         const email = formData.get('email') as string;
@@ -51,7 +54,12 @@ export default function RegisterPage() {
             });
             
             if (result.success) {
-                router.push('/login');
+                // If there's a redirect parameter and it's not an admin user,
+                // we can redirect manually to the desired page
+                if (redirectTo && redirectTo !== '/admin/dashboard') {
+                    router.push(redirectTo);
+                }
+                // Otherwise, the AuthContext register function handles the redirect automatically
                 return;
             }
 
@@ -166,5 +174,15 @@ export default function RegisterPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function RegisterPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        </div>}>
+            <RegisterPageContent />
+        </Suspense>
     );
 } 

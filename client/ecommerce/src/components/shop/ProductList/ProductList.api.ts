@@ -53,7 +53,8 @@ export async function fetchShopProductList({
   if (searchTerm) {
     params.append('searchTerm', searchTerm);
   }
-  if (categoryId) {
+  // Only add categoryId if it's not "all" (which is used for frontend routing)
+  if (categoryId && categoryId !== 'all') {
     params.append('categoryId', categoryId);
   }
   if (minPrice !== undefined && minPrice !== '') {
