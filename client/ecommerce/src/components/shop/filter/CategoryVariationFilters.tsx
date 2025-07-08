@@ -69,7 +69,7 @@ const CategoryVariationFilters: React.FC = () => {
     <div className="space-y-4">
       {categoryDetails.variationTypes.map((variationType: VariationType) => (
         <div key={variationType.id} className="border-b border-gray-200 pb-4 last:border-b-0">
-          <h5 className="text-sm font-semibold mb-3 text-gray-800">{variationType.name}</h5>
+          <h5 className="text-sm font-semibold mb-3 text-gray-800">{variationType.displayName}</h5>
           <div className="space-y-2">
             {variationType.options.map((option) => {
               const isChecked = filters.variationFilters?.[variationType.name]?.includes(option.value) || false;

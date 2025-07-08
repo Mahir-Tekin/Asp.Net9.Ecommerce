@@ -25,7 +25,13 @@ namespace Asp.Net9.Ecommerce.Application.Catalog.Categories.DTOs
         /// The name of the variation type
         /// </summary>
         /// <example>Color</example>
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The user-friendly display name of the variation type
+        /// </summary>
+        /// <example>Shoe Size</example>
+        public string DisplayName { get; set; } = string.Empty;
 
         /// <summary>
         /// The list of options for this variation type

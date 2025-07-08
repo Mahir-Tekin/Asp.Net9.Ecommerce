@@ -10,6 +10,7 @@ export interface VariationOption {
 export interface VariationType {
   id: string;
   name: string;
+  displayName: string;
   options: VariationOption[];
 }
 

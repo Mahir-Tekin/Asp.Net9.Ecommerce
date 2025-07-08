@@ -15,7 +15,7 @@ export default function ProductOptionSelector({
 }: ProductOptionSelectorProps) {
   return (
     <div className="mb-2">
-      <div className="font-semibold mb-1">{variationType.name}:</div>
+      <div className="font-semibold mb-1">{variationType.displayName}:</div>
       <div className="flex gap-2 flex-wrap">
         {variationType.options.map((option) => {
           const disabled = isOptionDisabled ? isOptionDisabled(option.id) : false;
