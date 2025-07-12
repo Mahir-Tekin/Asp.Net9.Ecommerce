@@ -2,6 +2,10 @@
 
 A full-stack e-commerce application I built to learn and demonstrate modern .NET development practices. This project implements Clean Architecture, Domain-Driven Design, and CQRS patterns.
 
+## 🚀 Live Demo
+
+- **Frontend**: [https://asp-net9-ecommerce.vercel.app](https://asp-net9-ecommerce.vercel.app) - Next.js application
+
 ## What I Built
 
 This project includes:
